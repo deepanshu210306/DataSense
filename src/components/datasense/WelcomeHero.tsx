@@ -49,7 +49,9 @@ export function WelcomeHero() {
             isLight ? "text-neutral-600" : "text-neutral-400",
           )}
         >
-          Ask questions, analyze datasets, and extract insights instantly.
+          Ask questions about India&apos;s{" "}
+          <strong className="font-medium">Census 2011</strong> open data — population,
+          literacy, workers, and more. Pick a dataset from the profile menu.
         </p>
 
         <motion.div

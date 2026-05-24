@@ -20,11 +20,15 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { CHAT_THREADS } from "@/lib/chatThreads";
+import { DATASET_OPTIONS } from "@/lib/datasets/constants";
+import type { DatasetId } from "@/lib/datasets/types";
 import { useTheme } from "@/components/providers/ThemeProvider";
 import { cn } from "@/lib/utils";
 
 type SidebarProps = {
   collapsed: boolean;
+  datasetId: DatasetId;
+  onDatasetChange: (id: DatasetId) => void;
   onToggleCollapse: () => void;
   onNewChat: () => void;
   onSearch: () => void;
@@ -32,12 +36,6 @@ type SidebarProps = {
   mobile?: boolean;
   onCloseMobile?: () => void;
 };
-
-const DATASETS = [
-  { id: "sales", label: "Sales — FY26" },
-  { id: "crm", label: "CRM — Feedback" },
-  { id: "ops", label: "Operations — Logs" },
-] as const;
 
 function LogoMark({
   size = 28,
@@ -88,6 +86,8 @@ function ProfileFavicon({
 
 export function Sidebar({
   collapsed,
+  datasetId,
+  onDatasetChange,
   onToggleCollapse,
   onNewChat,
   onSearch,
@@ -100,12 +100,9 @@ export function Sidebar({
   const [activeId, setActiveId] = useState<string>(CHAT_THREADS[0].id);
   const [profileOpen, setProfileOpen] = useState(false);
   const [datasetOpen, setDatasetOpen] = useState(false);
-  const [datasetId, setDatasetId] = useState<(typeof DATASETS)[number]["id"]>(
-    DATASETS[0].id,
-  );
   const profileRef = useRef<HTMLDivElement>(null);
 
-  const activeDataset = DATASETS.find((d) => d.id === datasetId)!;
+  const activeDataset = DATASET_OPTIONS.find((d) => d.id === datasetId)!;
 
   useEffect(() => {
     if (!profileOpen) setDatasetOpen(false);
@@ -382,12 +379,12 @@ export function Sidebar({
                     className="overflow-hidden"
                   >
                     <div className="space-y-0.5 pt-1">
-                      {DATASETS.map((d) => (
+                      {DATASET_OPTIONS.map((d) => (
                         <button
                           key={d.id}
                           type="button"
                           onClick={() => {
-                            setDatasetId(d.id);
+                            onDatasetChange(d.id);
                             setDatasetOpen(false);
                           }}
                           className={cn(

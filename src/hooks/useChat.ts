@@ -1,6 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
+import type { DatasetId } from "@/lib/datasets/types";
+import type { ChatApiErrorBody, ChatHistoryMessage } from "@/lib/types/chat";
 
 export type ChatRole = "user" | "assistant";
 
@@ -8,106 +11,171 @@ export type ChatMessage = {
   id: string;
   role: ChatRole;
   content: string;
-  /** When true, content is streamed into this message */
+  /** When true, the assistant reply is still streaming */
   streaming?: boolean;
+  /** Set when the API returns an error for this turn */
+  error?: boolean;
 };
-
-const DEMO_ASSISTANT_MARKDOWN = `Here is a quick read on **revenue trends** from your selected dataset.
-
-### Highlights
-- North region grew **12.4%** quarter-over-quarter.
-- Enterprise tier accounts for ~**58%** of recurring revenue.
-
-### Sample query
-You can slice by region with SQL-like filters in the dataset panel.
-
-\`\`\`sql
-SELECT region, SUM(revenue) AS total
-FROM sales
-WHERE quarter = 'Q2'
-GROUP BY region
-ORDER BY total DESC;
-\`\`\`
-
-> *Note: figures are illustrative for this demo UI.*
-
-Would you like me to **compare quarterly growth** or surface **anomalies** next?`;
 
 function id() {
   return crypto.randomUUID?.() ?? `m-${Date.now()}-${Math.random()}`;
 }
 
-export function useChat() {
+async function readErrorResponse(
+  response: Response,
+): Promise<ChatApiErrorBody> {
+  try {
+    const body = (await response.json()) as ChatApiErrorBody;
+    if (body.error) return body;
+  } catch {
+    /* fall through */
+  }
+  return {
+    error: `Request failed (${response.status})`,
+    code: undefined,
+  };
+}
+
+function formatAssistantError(body: ChatApiErrorBody): string {
+  if (body.code === "GROQ_RATE_LIMIT") {
+    return `### Service temporarily busy\n\n${body.error}`;
+  }
+  return `**Could not get an answer.** ${body.error}`;
+}
+
+export function useChat(datasetId: DatasetId) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isSending, setIsSending] = useState(false);
-  const streamRef = useRef<number | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
-  const clearStream = useCallback(() => {
-    if (streamRef.current != null) {
-      window.clearInterval(streamRef.current);
-      streamRef.current = null;
-    }
+  const cancelRequest = useCallback(() => {
+    abortRef.current?.abort();
+    abortRef.current = null;
   }, []);
 
-  useEffect(() => () => clearStream(), [clearStream]);
+  useEffect(() => () => cancelRequest(), [cancelRequest]);
 
   const reset = useCallback(() => {
-    clearStream();
+    cancelRequest();
     setMessages([]);
     setIsSending(false);
-  }, [clearStream]);
+  }, [cancelRequest]);
 
   const sendMessage = useCallback(
-    (raw: string) => {
+    async (raw: string) => {
       const text = raw.trim();
       if (!text || isSending) return;
 
       const userMsg: ChatMessage = { id: id(), role: "user", content: text };
       const assistantId = id();
 
+      const history: ChatHistoryMessage[] = messages
+        .filter((m) => !m.error && m.content.trim())
+        .map((m) => ({ role: m.role, content: m.content }));
+
       setMessages((prev) => [...prev, userMsg]);
       setIsSending(true);
 
-      setTimeout(() => {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: assistantId,
-            role: "assistant",
-            content: "",
-            streaming: true,
-          },
-        ]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: assistantId,
+          role: "assistant",
+          content: "",
+          streaming: true,
+        },
+      ]);
 
-        const full = DEMO_ASSISTANT_MARKDOWN;
-        let i = 0;
-        const chunk = 2;
-        const interval = 18;
+      cancelRequest();
+      const controller = new AbortController();
+      abortRef.current = controller;
 
-        clearStream();
-        streamRef.current = window.setInterval(() => {
-          i += chunk;
-          const slice = full.slice(0, i);
+      try {
+        const response = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message: text,
+            datasetId,
+            history,
+          }),
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          const err = await readErrorResponse(response);
+          if (err.code === "GROQ_RATE_LIMIT") {
+            toast.error("AI rate limit reached", {
+              description:
+                "Wait about a minute, then try again or start a new chat.",
+              duration: 8000,
+            });
+          }
           setMessages((prev) =>
             prev.map((m) =>
               m.id === assistantId
-                ? { ...m, content: slice, streaming: i < full.length }
+                ? {
+                    ...m,
+                    content: formatAssistantError(err),
+                    streaming: false,
+                    error: true,
+                  }
                 : m,
             ),
           );
-          if (i >= full.length) {
-            clearStream();
-            setIsSending(false);
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === assistantId ? { ...m, streaming: false } : m,
-              ),
-            );
-          }
-        }, interval);
-      }, 450);
+          return;
+        }
+
+        const reader = response.body?.getReader();
+        if (!reader) {
+          throw new Error("No response stream from server.");
+        }
+
+        const decoder = new TextDecoder();
+        let accumulated = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          accumulated += decoder.decode(value, { stream: true });
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantId
+                ? { ...m, content: accumulated, streaming: true }
+                : m,
+            ),
+          );
+        }
+
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === assistantId ? { ...m, streaming: false } : m,
+          ),
+        );
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+        const message =
+          error instanceof Error ? error.message : "Network error.";
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === assistantId
+              ? {
+                  ...m,
+                  content: `**Could not get an answer.** ${message}`,
+                  streaming: false,
+                  error: true,
+                }
+              : m,
+          ),
+        );
+      } finally {
+        setIsSending(false);
+        abortRef.current = null;
+      }
     },
-    [clearStream, isSending],
+    [cancelRequest, datasetId, isSending, messages],
   );
 
   return { messages, isSending, sendMessage, reset };

@@ -2,6 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import {
+  DEFAULT_DATASET_ID,
+  getDatasetLabel,
+} from "@/lib/datasets/constants";
+import type { DatasetId } from "@/lib/datasets/types";
 import { useChat } from "@/hooks/useChat";
 import { BackgroundBlobs } from "./BackgroundBlobs";
 import { ChatInput } from "./ChatInput";
@@ -17,7 +22,8 @@ import { useTheme } from "@/components/providers/ThemeProvider";
 
 export function DataSenseApp() {
   const { theme } = useTheme();
-  const { messages, isSending, sendMessage, reset } = useChat();
+  const [datasetId, setDatasetId] = useState<DatasetId>(DEFAULT_DATASET_ID);
+  const { messages, isSending, sendMessage, reset } = useChat(datasetId);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -60,6 +66,8 @@ export function DataSenseApp() {
 
       <Sidebar
         collapsed={sidebarCollapsed}
+        datasetId={datasetId}
+        onDatasetChange={setDatasetId}
         onToggleCollapse={() => setSidebarCollapsed((c) => !c)}
         onNewChat={() => {
           reset();
@@ -79,6 +87,8 @@ export function DataSenseApp() {
       >
         <Sidebar
           collapsed={false}
+          datasetId={datasetId}
+          onDatasetChange={setDatasetId}
           onToggleCollapse={() => {}}
           onNewChat={() => {
             reset();
@@ -107,7 +117,11 @@ export function DataSenseApp() {
           ) : (
             <WelcomeHero />
           )}
-          <ChatInput onSend={sendMessage} disabled={isSending} />
+          <ChatInput
+            onSend={sendMessage}
+            disabled={isSending}
+            activeDatasetLabel={getDatasetLabel(datasetId)}
+          />
         </main>
       </div>
 

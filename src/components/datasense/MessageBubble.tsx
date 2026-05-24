@@ -18,6 +18,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
   const isUser = message.role === "user";
   const isStreamingAssistant =
     message.role === "assistant" && message.streaming && !message.content;
+  const isError = !isUser && message.error;
 
   return (
     <motion.div
@@ -31,9 +32,13 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           "max-w-[min(100%,720px)] rounded-2xl px-4 py-3 shadow-md ring-1 backdrop-blur-xl",
           isUser
             ? "bg-blue-600 text-white ring-blue-500/30"
-            : isLight
-              ? "bg-white text-neutral-900 ring-black/[0.08] shadow-black/5"
-              : "bg-white/[0.05] text-neutral-100 ring-white/[0.08]",
+            : isError
+              ? isLight
+                ? "border-amber-200/80 bg-amber-50 text-amber-950 ring-amber-300/50"
+                : "border-amber-500/25 bg-amber-500/[0.08] text-amber-50 ring-amber-400/20"
+              : isLight
+                ? "bg-white text-neutral-900 ring-black/[0.08] shadow-black/5"
+                : "bg-white/[0.05] text-neutral-100 ring-white/[0.08]",
         )}
       >
         {!isUser && (

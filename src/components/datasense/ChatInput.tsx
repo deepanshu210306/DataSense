@@ -11,12 +11,14 @@ type ChatInputProps = {
   onSend: (text: string) => void;
   disabled?: boolean;
   placeholder?: string;
+  activeDatasetLabel?: string;
 };
 
 export function ChatInput({
   onSend,
   disabled,
-  placeholder = "Ask anything about your data…",
+  placeholder = "Ask about Census 2011 data…",
+  activeDatasetLabel,
 }: ChatInputProps) {
   const { theme } = useTheme();
   const isLight = theme === "light";
@@ -38,7 +40,20 @@ export function ChatInput({
           : "border-white/[0.06] bg-gradient-to-t from-[#09090c]/95 via-[#09090c]/75 to-transparent",
       )}
     >
-      <div className="mx-auto w-full max-w-3xl">
+      <motion.div className="mx-auto w-full max-w-3xl">
+        {activeDatasetLabel && (
+          <p
+            className={cn(
+              "mb-2 truncate px-1 text-center text-xs",
+              isLight ? "text-neutral-500" : "text-neutral-400",
+            )}
+          >
+            Dataset:{" "}
+            <span className={isLight ? "text-neutral-700" : "text-neutral-300"}>
+              {activeDatasetLabel}
+            </span>
+          </p>
+        )}
         <div
           className={cn(
             "relative rounded-[1.25rem] p-1.5 shadow-lg ring-1 backdrop-blur-2xl transition-shadow duration-300",
@@ -146,7 +161,7 @@ export function ChatInput({
           DataSense can make mistakes. Verify important figures against your source
           of truth.
         </p>
-      </div>
+      </motion.div>
     </div>
   );
 }
