@@ -3,16 +3,24 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Search, X } from "lucide-react";
-import { CHAT_THREADS } from "@/lib/chatThreads";
+import type { ConversationSummary } from "@/lib/conversations/types";
+import { CHAT } from "@/lib/copy";
 import { useTheme } from "@/components/providers/ThemeProvider";
 import { cn } from "@/lib/utils";
 
 type SearchChatsDialogProps = {
   open: boolean;
   onClose: () => void;
+  conversations: ConversationSummary[];
+  onSelectConversation: (id: string) => void;
 };
 
-export function SearchChatsDialog({ open, onClose }: SearchChatsDialogProps) {
+export function SearchChatsDialog({
+  open,
+  onClose,
+  conversations,
+  onSelectConversation,
+}: SearchChatsDialogProps) {
   const { theme } = useTheme();
   const isLight = theme === "light";
   const [q, setQ] = useState("");
@@ -21,7 +29,7 @@ export function SearchChatsDialog({ open, onClose }: SearchChatsDialogProps) {
     if (!open) setQ("");
   }, [open]);
 
-  const filtered = CHAT_THREADS.filter((t) =>
+  const filtered = conversations.filter((t) =>
     t.title.toLowerCase().includes(q.trim().toLowerCase()),
   );
 
@@ -70,7 +78,7 @@ export function SearchChatsDialog({ open, onClose }: SearchChatsDialogProps) {
                 autoFocus
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Search conversations…"
+                placeholder={CHAT.searchPlaceholder}
                 className={cn(
                   "min-w-0 flex-1 bg-transparent py-2 text-sm placeholder:text-neutral-500 focus:outline-none",
                   isLight ? "text-neutral-900" : "text-neutral-100",
@@ -101,7 +109,7 @@ export function SearchChatsDialog({ open, onClose }: SearchChatsDialogProps) {
                     isLight ? "text-neutral-500" : "text-neutral-500",
                   )}
                 >
-                  No chats match your search.
+                  {CHAT.searchEmpty}
                 </p>
               ) : (
                 <ul className="space-y-0.5">
@@ -109,7 +117,10 @@ export function SearchChatsDialog({ open, onClose }: SearchChatsDialogProps) {
                     <li key={t.id}>
                       <button
                         type="button"
-                        onClick={onClose}
+                        onClick={() => {
+                          onSelectConversation(t.id);
+                          onClose();
+                        }}
                         className={cn(
                           "flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition-colors",
                           isLight
@@ -124,7 +135,7 @@ export function SearchChatsDialog({ open, onClose }: SearchChatsDialogProps) {
                             isLight ? "text-neutral-500" : "text-neutral-600",
                           )}
                         >
-                          {t.updated}
+                          {t.updatedAt}
                         </span>
                       </button>
                     </li>

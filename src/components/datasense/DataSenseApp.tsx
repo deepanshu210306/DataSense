@@ -1,13 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { signOut, useSession } from "next-auth/react";
 import { toast } from "sonner";
-import {
-  DEFAULT_DATASET_ID,
-  getDatasetLabel,
-} from "@/lib/datasets/constants";
-import type { DatasetId } from "@/lib/datasets/types";
+import { CHAT } from "@/lib/copy";
 import { useChat } from "@/hooks/useChat";
+import { useConversations } from "@/hooks/useConversations";
+import { useDatasets } from "@/hooks/useDatasets";
 import { BackgroundBlobs } from "./BackgroundBlobs";
 import { ChatInput } from "./ChatInput";
 import {
@@ -20,18 +20,94 @@ import { SearchChatsDialog } from "./SearchChatsDialog";
 import { WelcomeHero } from "./WelcomeHero";
 import { useTheme } from "@/components/providers/ThemeProvider";
 
-export function DataSenseApp() {
+type DataSenseAppProps = {
+  conversationId?: string;
+};
+
+export function DataSenseApp({ conversationId }: DataSenseAppProps) {
+  const router = useRouter();
+  const { data: session } = useSession();
   const { theme } = useTheme();
-  const [datasetId, setDatasetId] = useState<DatasetId>(DEFAULT_DATASET_ID);
-  const { messages, isSending, sendMessage, reset } = useChat(datasetId);
+  const [resourceId, setResourceId] = useState<string | null>(null);
+  const [activeDatasetLabel, setActiveDatasetLabel] = useState<string | null>(
+    null,
+  );
+  const { conversations, refresh: refreshConversations } = useConversations();
+  const {
+    datasets,
+    loading: datasetsLoading,
+    refresh: refreshDatasets,
+  } = useDatasets();
+
+  const { messages, isSending, isLoading, sendMessage, reset } = useChat({
+    conversationId,
+    resourceId,
+    onDatasetResolved: (_id, label) => setActiveDatasetLabel(label),
+    onConversationCreated: (id) => {
+      router.replace(`/chat/${id}`);
+      void refreshConversations();
+    },
+    onMessageComplete: () => {
+      void refreshConversations();
+    },
+  });
+
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
   const hasConversation = messages.length > 0;
 
+  useEffect(() => {
+    if (conversationId) {
+      const match = conversations.find((c) => c.id === conversationId);
+      if (match?.resourceId) {
+        setResourceId(match.resourceId);
+        const label = datasets.find(
+          (d) => d.resourceId === match.resourceId,
+        )?.title;
+        if (label) setActiveDatasetLabel(label);
+      }
+    }
+  }, [conversationId, conversations, datasets]);
+
+  useEffect(() => {
+    if (!resourceId && datasets.length > 0 && !conversationId) {
+      setResourceId(datasets[0].resourceId);
+      setActiveDatasetLabel(datasets[0].title);
+    }
+  }, [conversationId, datasets, resourceId]);
+
   const openSearch = useCallback(() => setSearchOpen(true), []);
   const closeSearch = useCallback(() => setSearchOpen(false), []);
+
+  const startNewChat = useCallback(() => {
+    reset();
+    setActiveDatasetLabel(
+      datasets.find((d) => d.resourceId === resourceId)?.title ?? null,
+    );
+    router.push("/chat");
+  }, [datasets, reset, resourceId, router]);
+
+  const selectConversation = useCallback(
+    (id: string) => {
+      router.push(`/chat/${id}`);
+    },
+    [router],
+  );
+
+  const handleSignOut = useCallback(() => {
+    void signOut({ callbackUrl: "/" });
+  }, []);
+
+  const handleResourceIdChange = useCallback(
+    (id: string) => {
+      setResourceId(id);
+      const label = datasets.find((d) => d.resourceId === id)?.title ?? null;
+      setActiveDatasetLabel(label);
+    },
+    [datasets],
+  );
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -54,54 +130,64 @@ export function DataSenseApp() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  const sidebarProps = {
+    collapsed: sidebarCollapsed,
+    resourceId,
+    onResourceIdChange: handleResourceIdChange,
+    datasets,
+    datasetsLoading,
+    onDatasetsRefresh: refreshDatasets,
+    onToggleCollapse: () => setSidebarCollapsed((c) => !c),
+    onNewChat: () => {
+      startNewChat();
+      toast.success(CHAT.newChat);
+    },
+    onSearch: openSearch,
+    onSettings: () =>
+      toast.message("Dataset picker", {
+        description:
+          "Open your profile menu (bottom-left) to pick or add a data.gov.in dataset.",
+      }),
+    conversations,
+    activeConversationId: conversationId ?? null,
+    onSelectConversation: selectConversation,
+    user: session?.user,
+    onSignOut: handleSignOut,
+  };
+
   return (
     <div
       className={
         theme === "dark"
-          ? "relative flex h-dvh w-full overflow-hidden bg-gradient-to-b from-[#0b0b0e] via-[#09090c] to-[#070708] text-neutral-100"
-          : "relative flex h-dvh w-full overflow-hidden bg-gradient-to-b from-[#f7f8fc] via-[#f2f4f9] to-[#eef1f8] text-neutral-900"
+          ? "relative flex h-dvh w-full overflow-hidden bg-[#0d0d0d] text-neutral-100"
+          : "relative flex h-dvh w-full overflow-hidden bg-[#f4f4f5] text-neutral-900"
       }
     >
       <BackgroundBlobs />
 
-      <Sidebar
-        collapsed={sidebarCollapsed}
-        datasetId={datasetId}
-        onDatasetChange={setDatasetId}
-        onToggleCollapse={() => setSidebarCollapsed((c) => !c)}
-        onNewChat={() => {
-          reset();
-          toast.success("Started a new chat");
-        }}
-        onSearch={openSearch}
-        onSettings={() =>
-          toast.message("Settings", {
-            description: "Preferences and workspace controls belong here.",
-          })
-        }
-      />
+      <Sidebar {...sidebarProps} />
 
       <MobileSidebarDrawer
         open={mobileMenuOpen}
         onClose={() => setMobileMenuOpen(false)}
       >
         <Sidebar
+          {...sidebarProps}
           collapsed={false}
-          datasetId={datasetId}
-          onDatasetChange={setDatasetId}
           onToggleCollapse={() => {}}
           onNewChat={() => {
-            reset();
+            startNewChat();
             setMobileMenuOpen(false);
-            toast.success("Started a new chat");
+            toast.success(CHAT.newChat);
           }}
           onSearch={() => {
             openSearch();
             setMobileMenuOpen(false);
           }}
           onSettings={() => {
-            toast.message("Settings", {
-              description: "Preferences and workspace controls belong here.",
+            toast.message("Dataset picker", {
+              description:
+                "Open your profile menu to pick or add a data.gov.in dataset.",
             });
             setMobileMenuOpen(false);
           }}
@@ -112,15 +198,20 @@ export function DataSenseApp() {
 
       <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
         <main className="relative flex min-h-0 min-w-0 flex-1 flex-col bg-transparent">
-          {hasConversation ? (
+          {isLoading ? (
+            <div className="flex flex-1 items-center justify-center text-sm text-neutral-500">
+              {CHAT.loading}
+            </div>
+          ) : hasConversation ? (
             <MessageList messages={messages} />
           ) : (
-            <WelcomeHero />
+            <WelcomeHero onTryExample={sendMessage} />
           )}
           <ChatInput
             onSend={sendMessage}
-            disabled={isSending}
-            activeDatasetLabel={getDatasetLabel(datasetId)}
+            disabled={isSending || isLoading}
+            datasetLabel={activeDatasetLabel}
+            resourceId={resourceId}
           />
         </main>
       </div>
@@ -130,7 +221,12 @@ export function DataSenseApp() {
         theme={theme}
       />
 
-      <SearchChatsDialog open={searchOpen} onClose={closeSearch} />
+      <SearchChatsDialog
+        open={searchOpen}
+        onClose={closeSearch}
+        conversations={conversations}
+        onSelectConversation={selectConversation}
+      />
     </div>
   );
 }

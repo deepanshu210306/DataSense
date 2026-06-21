@@ -1,24 +1,24 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { Mic, Paperclip, SendHorizontal } from "lucide-react";
+import { motion } from "framer-motion";
+import { ArrowUp } from "lucide-react";
+import { CHAT } from "@/lib/copy";
 import { useTheme } from "@/components/providers/ThemeProvider";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
 
 type ChatInputProps = {
   onSend: (text: string) => void;
   disabled?: boolean;
-  placeholder?: string;
-  activeDatasetLabel?: string;
+  resourceId?: string | null;
+  datasetLabel?: string | null;
 };
 
 export function ChatInput({
   onSend,
   disabled,
-  placeholder = "Ask about Census 2011 data…",
-  activeDatasetLabel,
+  resourceId,
+  datasetLabel,
 }: ChatInputProps) {
   const { theme } = useTheme();
   const isLight = theme === "light";
@@ -31,137 +31,95 @@ export function ChatInput({
     setValue("");
   }, [disabled, onSend, value]);
 
+  const canSend = !disabled && value.trim().length > 0;
+
   return (
-    <div
-      className={cn(
-        "shrink-0 border-t px-3 pb-4 pt-3 sm:px-6",
-        isLight
-          ? "border-black/[0.06] bg-gradient-to-t from-[#f2f4f9] via-[#f2f4f9]/92 to-transparent"
-          : "border-white/[0.06] bg-gradient-to-t from-[#09090c]/95 via-[#09090c]/75 to-transparent",
-      )}
-    >
-      <motion.div className="mx-auto w-full max-w-3xl">
-        {activeDatasetLabel && (
-          <p
-            className={cn(
-              "mb-2 truncate px-1 text-center text-xs",
-              isLight ? "text-neutral-500" : "text-neutral-400",
-            )}
-          >
-            Dataset:{" "}
-            <span className={isLight ? "text-neutral-700" : "text-neutral-300"}>
-              {activeDatasetLabel}
-            </span>
-          </p>
-        )}
+    <div className="pointer-events-none shrink-0 px-4 pb-4 pt-2 sm:px-6 sm:pb-6">
+      <div className="pointer-events-auto mx-auto w-full max-w-4xl">
         <div
           className={cn(
-            "relative rounded-[1.25rem] p-1.5 shadow-lg ring-1 backdrop-blur-2xl transition-shadow duration-300",
+            "relative flex flex-col rounded-[1.75rem] border shadow-lg transition-shadow duration-200",
             isLight
-              ? "bg-white/80 ring-black/[0.08]"
-              : "bg-white/[0.04] ring-white/[0.08]",
+              ? "border-black/[0.08] bg-white shadow-black/[0.04]"
+              : "border-white/[0.08] bg-[#2f2f2f] shadow-black/40",
             focused &&
-              "shadow-[0_0_0_1px_rgba(37,99,235,0.35)] ring-blue-600/35 dark:ring-blue-500/35",
+              (isLight
+                ? "shadow-black/[0.08]"
+                : "border-white/[0.12] shadow-black/60"),
           )}
         >
-          <div className="flex items-end gap-1.5 sm:gap-2">
-            <motion.button
-              type="button"
-              whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.96 }}
-              onClick={() =>
-                toast.message("Attach dataset", {
-                  description: "Wire your upload flow to this action.",
-                })
+          <textarea
+            rows={1}
+            value={value}
+            disabled={disabled}
+            onChange={(e) => setValue(e.target.value)}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                submit();
               }
+            }}
+            placeholder={CHAT.inputPlaceholder}
+            className={cn(
+              "max-h-40 min-h-[52px] w-full resize-none bg-transparent px-5 pb-2 pt-4 text-[0.9375rem] leading-relaxed placeholder:text-neutral-500 focus:outline-none disabled:opacity-50",
+              isLight ? "text-neutral-900" : "text-neutral-100",
+            )}
+          />
+
+          <div className="flex items-center justify-between gap-3 px-3 pb-3">
+            <p
               className={cn(
-                "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-colors",
-                isLight
-                  ? "text-neutral-500 hover:bg-black/[0.04] hover:text-neutral-800"
-                  : "text-neutral-400 hover:bg-white/[0.06] hover:text-neutral-100",
+                "min-w-0 truncate pl-2 text-[11px]",
+                !resourceId
+                  ? isLight
+                    ? "text-amber-600"
+                    : "text-amber-400/90"
+                  : isLight
+                    ? "text-neutral-400"
+                    : "text-neutral-500",
               )}
-              aria-label="Attach dataset"
             >
-              <Paperclip className="h-5 w-5" />
-            </motion.button>
-            <div className="relative min-h-[44px] min-w-0 flex-1 py-2">
-              <textarea
-                rows={1}
-                value={value}
-                disabled={disabled}
-                onChange={(e) => setValue(e.target.value)}
-                onFocus={() => setFocused(true)}
-                onBlur={() => setFocused(false)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    submit();
-                  }
-                }}
-                placeholder={placeholder}
-                className={cn(
-                  "max-h-40 min-h-[24px] w-full resize-none bg-transparent text-[0.9375rem] leading-relaxed placeholder:text-neutral-500 focus:outline-none disabled:opacity-50",
-                  isLight ? "text-neutral-900" : "text-neutral-100",
-                )}
-              />
-            </div>
+              {!resourceId
+                ? CHAT.datasetNone
+                : datasetLabel
+                  ? CHAT.datasetSelected(datasetLabel)
+                  : CHAT.datasetSelectedShort}
+            </p>
+
             <motion.button
               type="button"
-              whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.96 }}
-              onClick={() =>
-                toast.message("Voice input", {
-                  description: "Connect speech-to-text when ready.",
-                })
-              }
-              className={cn(
-                "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-colors",
-                isLight
-                  ? "text-neutral-500 hover:bg-black/[0.04] hover:text-neutral-800"
-                  : "text-neutral-400 hover:bg-white/[0.06] hover:text-neutral-100",
-              )}
-              aria-label="Voice input"
-            >
-              <Mic className="h-5 w-5" />
-            </motion.button>
-            <motion.button
-              type="button"
-              disabled={disabled || !value.trim()}
-              whileHover={{ scale: disabled || !value.trim() ? 1 : 1.04 }}
-              whileTap={{ scale: disabled || !value.trim() ? 1 : 0.96 }}
+              disabled={!canSend}
+              whileHover={{ scale: canSend ? 1.04 : 1 }}
+              whileTap={{ scale: canSend ? 0.96 : 1 }}
               onClick={submit}
               className={cn(
-                "relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl text-white",
-                "bg-blue-600 shadow-[0_0_20px_rgba(37,99,235,0.35)] hover:bg-blue-500",
-                "disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none",
+                "flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors",
+                canSend
+                  ? isLight
+                    ? "bg-neutral-900 text-white hover:bg-neutral-800"
+                    : "bg-white text-black hover:bg-neutral-200"
+                  : isLight
+                    ? "cursor-not-allowed bg-neutral-100 text-neutral-400"
+                    : "cursor-not-allowed bg-white/[0.08] text-neutral-600",
               )}
               aria-label="Send message"
             >
-              <AnimatePresence>
-                {!disabled && value.trim() && (
-                  <motion.span
-                    aria-hidden
-                    className="pointer-events-none absolute inset-0 bg-gradient-to-t from-white/10 to-transparent"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                  />
-                )}
-              </AnimatePresence>
-              <SendHorizontal className="relative h-5 w-5" />
+              <ArrowUp className="h-4 w-4" strokeWidth={2.25} />
             </motion.button>
           </div>
         </div>
+
         <p
           className={cn(
-            "mt-2 text-center text-[11px]",
-            isLight ? "text-neutral-500" : "text-neutral-600",
+            "mt-2.5 text-center text-[11px] leading-relaxed",
+            isLight ? "text-neutral-400" : "text-neutral-600",
           )}
         >
-          DataSense can make mistakes. Verify important figures against your source
-          of truth.
+          {CHAT.inputHint} {CHAT.verifyDisclaimer}
         </p>
-      </motion.div>
+      </div>
     </div>
   );
 }

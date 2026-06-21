@@ -1,5 +1,6 @@
 "use client";
 
+import { SessionProvider } from "next-auth/react";
 import { Toaster } from "sonner";
 import { ThemeProvider, useTheme } from "./ThemeProvider";
 
@@ -23,9 +24,11 @@ function ThemedToaster() {
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
   return (
-    <ThemeProvider>
-      {children}
-      <ThemedToaster />
-    </ThemeProvider>
+    <SessionProvider>
+      <ThemeProvider>
+        {children}
+        <ThemedToaster />
+      </ThemeProvider>
+    </SessionProvider>
   );
 }

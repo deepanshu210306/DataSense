@@ -25,12 +25,12 @@ html[data-theme="light"] {
 }
 
 html[data-theme="dark"] body {
-  background-color: #09090c;
-  color: #e4e4e7;
+  background-color: #0d0d0d;
+  color: #ececec;
 }
 
 html[data-theme="light"] body {
-  background-color: #f2f4f9;
+  background-color: #f4f4f5;
   color: #171717;
 }
 
@@ -76,18 +76,20 @@ html[data-theme="light"] *::-webkit-scrollbar-thumb {
   border-radius: 999px;
 }
 
-/* Markdown */
+/* Markdown — tuned for open assistant responses (ChatGPT-style) */
 .ds-md {
-  font-size: 0.9375rem;
-  line-height: 1.65;
+  font-size: 1rem;
+  line-height: 1.75;
+  width: 100%;
+  letter-spacing: -0.01em;
 }
 
 html[data-theme="dark"] .ds-md {
-  color: #e5e5e5;
+  color: #ececec;
 }
 
 html[data-theme="light"] .ds-md {
-  color: #262626;
+  color: #1a1a1a;
 }
 
 .ds-md p {
@@ -175,7 +177,9 @@ html[data-theme="light"] .ds-md blockquote {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.875rem;
-  margin: 0.5rem 0;
+  margin: 0.75rem 0;
+  display: block;
+  overflow-x: auto;
 }
 
 html[data-theme="dark"] .ds-md th,

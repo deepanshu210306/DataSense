@@ -1,5 +1,7 @@
-import { DataSenseApp } from "@/components/datasense/DataSenseApp";
+import { auth } from "@/auth";
+import { HomePage } from "@/components/marketing/HomePage";
 
-export default function Home() {
-  return <DataSenseApp />;
+export default async function Page() {
+  const session = await auth();
+  return <HomePage session={session} />;
 }

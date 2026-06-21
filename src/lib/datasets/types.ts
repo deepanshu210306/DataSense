@@ -1,16 +1,23 @@
-/** Keys used in the sidebar dataset picker */
-export type DatasetId = "sales" | "crm" | "ops";
+export type ResourceId = string;
 
-export type DatasetConfig = {
-  id: DatasetId;
-  /** Short label shown in the UI */
-  label: string;
-  /** Human-readable summary for the LLM */
-  description: string;
-  /** data.gov.in resource UUID */
-  resourceId: string;
-  /** Public dataset page on data.gov.in */
+export type DatasetField = {
+  id?: string;
+  name?: string;
+  type?: string;
+};
+
+export type CachedDataset = {
+  _id: ResourceId;
+  title: string;
   portalUrl: string;
-  /** Optional extra guidance appended to the system prompt */
-  promptFocus?: string;
+  fields: DatasetField[];
+  resolvedAt: Date;
+  addedByUserId: string;
+};
+
+export type DatasetSummary = {
+  resourceId: ResourceId;
+  title: string;
+  portalUrl: string;
+  fields: DatasetField[];
 };

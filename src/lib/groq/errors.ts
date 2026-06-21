@@ -2,8 +2,15 @@
 export const GROQ_RATE_LIMIT_MESSAGE =
   "The AI service is temporarily busy (rate limit reached). Wait about 60 seconds, then try again. Starting a **New chat** or asking a shorter question also helps.";
 
+export const GROQ_REQUEST_TOO_LARGE_MESSAGE =
+  "The dataset sample is too large for the AI tier. Try a smaller dataset, ask a narrower question, or lower CHAT_MAX_CONTEXT_CHARS / GROQ_MAX_PROMPT_TOKENS in .env.local.";
+
 export function isGroqRateLimit(status: number, detail: string): boolean {
   return status === 429 || /rate limit/i.test(detail);
+}
+
+export function isGroqRequestTooLarge(detail: string): boolean {
+  return /request too large|reduce your message size/i.test(detail);
 }
 
 export function parseRetryAfterMs(header: string | null): number | null {

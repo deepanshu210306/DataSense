@@ -2,7 +2,9 @@ import { AppError } from "@/lib/errors";
 import { getServerEnv } from "@/lib/env";
 import {
   GROQ_RATE_LIMIT_MESSAGE,
+  GROQ_REQUEST_TOO_LARGE_MESSAGE,
   isGroqRateLimit,
+  isGroqRequestTooLarge,
   parseRetryAfterMs,
   sleep,
 } from "./errors";
@@ -37,6 +39,12 @@ function throwGroqHttpError(status: number, detail: string): never {
     throw new AppError(GROQ_RATE_LIMIT_MESSAGE, {
       status: 429,
       code: "GROQ_RATE_LIMIT",
+    });
+  }
+  if (isGroqRequestTooLarge(detail)) {
+    throw new AppError(GROQ_REQUEST_TOO_LARGE_MESSAGE, {
+      status: 413,
+      code: "GROQ_REQUEST_TOO_LARGE",
     });
   }
   throw new AppError(`AI service error: ${detail}`, {

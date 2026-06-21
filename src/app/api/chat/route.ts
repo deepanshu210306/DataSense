@@ -1,62 +1,102 @@
-import { runDatasetChat } from "@/lib/ai/chat-service";
-import { isDatasetId } from "@/lib/datasets/registry";
-import { AppError, isAppError, toErrorMessage } from "@/lib/errors";
-import type { ChatRequestBody } from "@/lib/types/chat";
-
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-
-function jsonError(message: string, status: number, code?: string) {
-  return Response.json({ error: message, code }, { status });
-}
-
-export async function POST(req: Request) {
-  try {
-    const body = (await req.json()) as ChatRequestBody;
-
-    if (!body?.message || typeof body.message !== "string") {
-      throw new AppError("Missing message in request body.", {
-        status: 400,
-        code: "VALIDATION",
-      });
-    }
-
-    if (!body.datasetId || !isDatasetId(body.datasetId)) {
-      throw new AppError('Invalid datasetId. Use "sales", "crm", or "ops".', {
-        status: 400,
-        code: "VALIDATION",
-      });
-    }
-
-    const stream = await runDatasetChat({
-      message: body.message,
-      datasetId: body.datasetId,
-      history: body.history,
-      signal: req.signal,
-    });
-
-    return new Response(stream, {
-      headers: {
-        "Content-Type": "text/plain; charset=utf-8",
-        "Cache-Control": "no-cache, no-transform",
-        "X-Content-Type-Options": "nosniff",
-      },
-    });
-  } catch (error) {
-    if (isAppError(error)) {
-      return jsonError(error.message, error.status, error.code);
-    }
-
-    const message = toErrorMessage(error);
-    const isEnv =
-      message.includes("environment") || message.includes("DATA_GOV_IN_API_KEY");
-
-    return jsonError(
-      isEnv
-        ? "Server is not configured. Copy .env.example to .env.local and add your API keys."
-        : message,
-      isEnv ? 503 : 500,
-      "INTERNAL_ERROR",
-    );
-  }
-}
+import { auth } from "@/auth";
+import { runDatasetChat } from "@/lib/ai/chat-service";
+import {
+  ensureConversation,
+  getRecentHistory,
+  saveChatMessage,
+} from "@/lib/conversations/service";
+import {
+  persistAssistantReply,
+  wrapStreamWithPersistence,
+} from "@/lib/conversations/stream";
+import { jsonError } from "@/lib/api-response";
+import { isAppError, toErrorMessage } from "@/lib/errors";
+import { chatRequestSchema } from "@/schemas/chatRequestSchema";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+export async function POST(req: Request) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return jsonError("Sign in required.", 401, "UNAUTHORIZED");
+    }
+
+    const parsed = chatRequestSchema.safeParse(await req.json());
+    if (!parsed.success) {
+      const message =
+        parsed.error.issues[0]?.message ?? "Invalid request body.";
+      return jsonError(message, 400, "VALIDATION");
+    }
+
+    const { message, conversationId, resourceId } = parsed.data;
+
+    const conversation = await ensureConversation(
+      session.user.id,
+      conversationId,
+      resourceId,
+      message,
+    );
+
+    const history = conversationId
+      ? await getRecentHistory(conversation._id)
+      : [];
+
+    await saveChatMessage({
+      conversationId: conversation._id,
+      role: "user",
+      content: message.trim(),
+    });
+
+    const { stream, resolvedResourceId, resolvedDatasetLabel } =
+      await runDatasetChat({
+        message,
+        resourceId,
+        history,
+        signal: req.signal,
+      });
+
+    const persistedStream = wrapStreamWithPersistence(stream, (content) =>
+      persistAssistantReply({
+        conversationId: conversation._id,
+        content,
+        resolvedResourceId,
+        resolvedDatasetLabel,
+      }),
+    );
+
+    return new Response(persistedStream, {
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "no-cache, no-transform",
+        "X-Content-Type-Options": "nosniff",
+        "X-Conversation-Id": conversation._id,
+        "X-Resolved-Dataset-Id": resolvedResourceId,
+        "X-Resolved-Dataset-Label": resolvedDatasetLabel,
+        "X-Dataset-Auto-Detected": "false",
+      },
+    });
+  } catch (error) {
+    if (isAppError(error)) {
+      return jsonError(error.message, error.status, error.code);
+    }
+
+    const message = toErrorMessage(error);
+    const isEnv =
+      message.includes("environment") ||
+      message.includes("DATA_GOV_IN_API_KEY") ||
+      message.includes("DATABASE_URL");
+
+    return jsonError(
+      isEnv
+        ? "Server is not configured. Check .env.local (API keys, AUTH_*, DATABASE_URL)."
+        : message.includes("bad auth") || message.includes("MongoServerError")
+          ? "Could not connect to MongoDB. Verify DATABASE_URL and MONGODB_DB_NAME in .env.local."
+          : message,
+      isEnv ? 503 : 500,
+      "INTERNAL_ERROR",
+    );
+  }
+}
+

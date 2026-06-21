@@ -14,9 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "DataSense — Talk to Your Data",
+  title: "DataSense — Chat with Indian Government Data",
   description:
-    "Ask questions, analyze datasets, and extract insights instantly with DataSense.",
+    "Sign in with Google or email, query any data.gov.in dataset, and save your chat history.",
 };
 
 export default function RootLayout({

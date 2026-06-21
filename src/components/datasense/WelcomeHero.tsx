@@ -2,96 +2,81 @@
 
 import { motion } from "framer-motion";
 import { Sparkles } from "lucide-react";
+import { CHAT } from "@/lib/copy";
 import { useTheme } from "@/components/providers/ThemeProvider";
 import { cn } from "@/lib/utils";
 
-export function WelcomeHero() {
+const EXAMPLE_PROMPTS = [
+  "What is the total population in the sample?",
+  "Compare literacy rates across states",
+  "Break down population by age and sex",
+] as const;
+
+type WelcomeHeroProps = {
+  onTryExample?: (prompt: string) => void;
+};
+
+export function WelcomeHero({ onTryExample }: WelcomeHeroProps) {
   const { theme } = useTheme();
   const isLight = theme === "light";
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-4 py-12 sm:px-8">
+    <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-4 py-10 sm:px-6">
       <motion.div
-        initial={{ opacity: 0, y: 16 }}
+        initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-        className="mx-auto flex w-full max-w-xl flex-col items-center text-center"
+        transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+        className="mx-auto flex w-full max-w-4xl flex-col items-center text-center"
       >
         <motion.div
-          initial={{ scale: 0.94, opacity: 0 }}
+          initial={{ scale: 0.96, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.06, duration: 0.4 }}
+          transition={{ delay: 0.05, duration: 0.3 }}
           className={cn(
-            "mb-6 flex h-14 w-14 items-center justify-center rounded-2xl ring-1",
-            isLight
-              ? "bg-blue-600/10 ring-blue-600/20"
-              : "bg-blue-500/15 ring-blue-400/25",
+            "mb-6 flex h-11 w-11 items-center justify-center rounded-full",
+            isLight ? "bg-neutral-100 text-neutral-600" : "bg-white/[0.08] text-neutral-300",
           )}
         >
-          <Sparkles
-            className={cn(
-              "h-7 w-7",
-              isLight ? "text-blue-700" : "text-blue-400",
-            )}
-          />
+          <Sparkles className="h-5 w-5" />
         </motion.div>
+
         <h1
           className={cn(
-            "text-balance text-3xl font-semibold tracking-tight sm:text-4xl",
+            "text-balance text-2xl font-semibold tracking-tight sm:text-[1.75rem]",
             isLight ? "text-neutral-950" : "text-white",
           )}
         >
-          Talk to Your Data
+          {CHAT.emptyTitle}
         </h1>
         <p
           className={cn(
-            "mt-3 max-w-lg text-pretty text-base leading-relaxed sm:text-lg",
-            isLight ? "text-neutral-600" : "text-neutral-400",
+            "mt-2 max-w-md text-pretty text-sm leading-relaxed",
+            isLight ? "text-neutral-500" : "text-neutral-400",
           )}
         >
-          Ask questions about India&apos;s{" "}
-          <strong className="font-medium">Census 2011</strong> open data — population,
-          literacy, workers, and more. Pick a dataset from the profile menu.
+          {CHAT.emptyDescription}
         </p>
 
-        <motion.div
-          aria-hidden
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.15, duration: 0.5 }}
-          className="mt-10 flex w-full max-w-sm justify-center"
-        >
-          <svg
-            viewBox="0 0 320 100"
-            className="h-20 w-full text-blue-600/25 dark:text-blue-400/20"
-            fill="none"
-          >
-            <defs>
-              <linearGradient id="ds-hero-grad" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stopColor="rgb(37,99,235)" stopOpacity="0.55" />
-                <stop offset="100%" stopColor="rgb(37,99,235)" stopOpacity="0.2" />
-              </linearGradient>
-            </defs>
-            <rect
-              x="20"
-              y="22"
-              width="100"
-              height="60"
-              rx="14"
-              stroke="url(#ds-hero-grad)"
-              strokeWidth="1.5"
-            />
-            <path
-              d="M40 42h60M40 54h44M40 66h52"
-              stroke="currentColor"
-              strokeWidth="3"
-              strokeLinecap="round"
-              className={isLight ? "text-black/10" : "text-white/10"}
-            />
-            <circle cx="248" cy="36" r="5" fill="rgb(37,99,235)" opacity="0.35" />
-            <circle cx="268" cy="58" r="8" fill="rgb(37,99,235)" opacity="0.22" />
-          </svg>
-        </motion.div>
+        <div className="mt-8 flex w-full max-w-2xl flex-col gap-2">
+          {EXAMPLE_PROMPTS.map((prompt, i) => (
+            <motion.button
+              key={prompt}
+              type="button"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.08 + i * 0.04, duration: 0.28 }}
+              onClick={() => onTryExample?.(prompt)}
+              className={cn(
+                "rounded-2xl px-4 py-3 text-left text-sm leading-relaxed transition",
+                isLight
+                  ? "bg-white text-neutral-600 shadow-sm shadow-black/[0.04] hover:bg-neutral-50"
+                  : "bg-[#2f2f2f] text-neutral-300 hover:bg-[#383838]",
+              )}
+            >
+              {prompt}
+            </motion.button>
+          ))}
+        </div>
       </motion.div>
     </div>
   );

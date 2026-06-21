@@ -67,10 +67,16 @@ function normalizePayload(
     ? (body.fields as DataGovFetchResult["fields"])
     : undefined;
 
+  const title =
+    typeof body.title === "string" && body.title.trim()
+      ? body.title.trim()
+      : undefined;
+
   return {
     records: records as DataGovRecord[],
     total,
     count: records.length,
+    title,
     fields,
     source,
   };

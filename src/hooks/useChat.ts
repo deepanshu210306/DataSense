@@ -2,8 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import type { DatasetId } from "@/lib/datasets/types";
-import type { ChatApiErrorBody, ChatHistoryMessage } from "@/lib/types/chat";
+import {
+  formatAssistantError,
+  readErrorResponse,
+  readTextStream,
+} from "@/lib/chat/stream-client";
+import type { ChatHistoryMessage } from "@/lib/types/chat";
 
 export type ChatRole = "user" | "assistant";
 
@@ -11,42 +15,43 @@ export type ChatMessage = {
   id: string;
   role: ChatRole;
   content: string;
-  /** When true, the assistant reply is still streaming */
   streaming?: boolean;
-  /** Set when the API returns an error for this turn */
   error?: boolean;
+  resolvedResourceId?: string;
+  resolvedDatasetLabel?: string;
 };
 
-function id() {
+function localId() {
   return crypto.randomUUID?.() ?? `m-${Date.now()}-${Math.random()}`;
 }
 
-async function readErrorResponse(
-  response: Response,
-): Promise<ChatApiErrorBody> {
-  try {
-    const body = (await response.json()) as ChatApiErrorBody;
-    if (body.error) return body;
-  } catch {
-    /* fall through */
-  }
-  return {
-    error: `Request failed (${response.status})`,
-    code: undefined,
-  };
-}
+type UseChatOptions = {
+  conversationId?: string | null;
+  resourceId: string | null;
+  onDatasetResolved?: (resourceId: string, label: string) => void;
+  onConversationCreated?: (conversationId: string) => void;
+  onMessageComplete?: () => void;
+};
 
-function formatAssistantError(body: ChatApiErrorBody): string {
-  if (body.code === "GROQ_RATE_LIMIT") {
-    return `### Service temporarily busy\n\n${body.error}`;
-  }
-  return `**Could not get an answer.** ${body.error}`;
-}
-
-export function useChat(datasetId: DatasetId) {
+export function useChat(options: UseChatOptions) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isSending, setIsSending] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+  const conversationIdRef = useRef<string | null>(
+    options.conversationId ?? null,
+  );
+
+  const {
+    resourceId,
+    onDatasetResolved,
+    onConversationCreated,
+    onMessageComplete,
+  } = options;
+
+  useEffect(() => {
+    conversationIdRef.current = options.conversationId ?? null;
+  }, [options.conversationId]);
 
   const cancelRequest = useCallback(() => {
     abortRef.current?.abort();
@@ -55,8 +60,54 @@ export function useChat(datasetId: DatasetId) {
 
   useEffect(() => () => cancelRequest(), [cancelRequest]);
 
+  const loadConversation = useCallback(async (conversationId: string) => {
+    setIsLoading(true);
+    cancelRequest();
+    try {
+      const response = await fetch(`/api/conversations/${conversationId}`);
+      if (!response.ok) {
+        throw new Error("Could not load conversation.");
+      }
+      const data = (await response.json()) as {
+        messages: Array<{
+          id: string;
+          role: ChatRole;
+          content: string;
+          resolvedResourceId?: string;
+          resolvedDatasetLabel?: string;
+        }>;
+      };
+      setMessages(
+        data.messages.map((m) => ({
+          id: m.id,
+          role: m.role,
+          content: m.content,
+          resolvedResourceId: m.resolvedResourceId ?? undefined,
+          resolvedDatasetLabel: m.resolvedDatasetLabel ?? undefined,
+        })),
+      );
+    } catch (error) {
+      toast.error("Failed to load chat", {
+        description:
+          error instanceof Error ? error.message : "Please try again.",
+      });
+      setMessages([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [cancelRequest]);
+
+  useEffect(() => {
+    if (options.conversationId) {
+      void loadConversation(options.conversationId);
+    } else {
+      setMessages([]);
+    }
+  }, [options.conversationId, loadConversation]);
+
   const reset = useCallback(() => {
     cancelRequest();
+    conversationIdRef.current = null;
     setMessages([]);
     setIsSending(false);
   }, [cancelRequest]);
@@ -66,8 +117,19 @@ export function useChat(datasetId: DatasetId) {
       const text = raw.trim();
       if (!text || isSending) return;
 
-      const userMsg: ChatMessage = { id: id(), role: "user", content: text };
-      const assistantId = id();
+      if (!resourceId) {
+        toast.error("Select a dataset first", {
+          description: "Open the profile menu and pick or add a dataset.",
+        });
+        return;
+      }
+
+      const userMsg: ChatMessage = {
+        id: localId(),
+        role: "user",
+        content: text,
+      };
+      const assistantId = localId();
 
       const history: ChatHistoryMessage[] = messages
         .filter((m) => !m.error && m.content.trim())
@@ -96,11 +158,38 @@ export function useChat(datasetId: DatasetId) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             message: text,
-            datasetId,
+            resourceId,
+            conversationId: conversationIdRef.current ?? undefined,
             history,
           }),
           signal: controller.signal,
         });
+
+        const newConversationId = response.headers.get("X-Conversation-Id");
+        if (newConversationId && !conversationIdRef.current) {
+          conversationIdRef.current = newConversationId;
+          onConversationCreated?.(newConversationId);
+        }
+
+        const resolvedResourceId =
+          response.headers.get("X-Resolved-Dataset-Id") ?? undefined;
+        const resolvedDatasetLabel =
+          response.headers.get("X-Resolved-Dataset-Label") ?? undefined;
+
+        if (resolvedResourceId && resolvedDatasetLabel) {
+          onDatasetResolved?.(resolvedResourceId, resolvedDatasetLabel);
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantId
+                ? {
+                    ...m,
+                    resolvedResourceId,
+                    resolvedDatasetLabel,
+                  }
+                : m,
+            ),
+          );
+        }
 
         if (!response.ok) {
           const err = await readErrorResponse(response);
@@ -126,18 +215,11 @@ export function useChat(datasetId: DatasetId) {
           return;
         }
 
-        const reader = response.body?.getReader();
-        if (!reader) {
+        if (!response.body) {
           throw new Error("No response stream from server.");
         }
 
-        const decoder = new TextDecoder();
-        let accumulated = "";
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          accumulated += decoder.decode(value, { stream: true });
+        await readTextStream(response.body, (accumulated) => {
           setMessages((prev) =>
             prev.map((m) =>
               m.id === assistantId
@@ -145,13 +227,14 @@ export function useChat(datasetId: DatasetId) {
                 : m,
             ),
           );
-        }
+        });
 
         setMessages((prev) =>
           prev.map((m) =>
             m.id === assistantId ? { ...m, streaming: false } : m,
           ),
         );
+        onMessageComplete?.();
       } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") {
           return;
@@ -175,8 +258,16 @@ export function useChat(datasetId: DatasetId) {
         abortRef.current = null;
       }
     },
-    [cancelRequest, datasetId, isSending, messages],
+    [
+      cancelRequest,
+      resourceId,
+      isSending,
+      messages,
+      onConversationCreated,
+      onDatasetResolved,
+      onMessageComplete,
+    ],
   );
 
-  return { messages, isSending, sendMessage, reset };
+  return { messages, isSending, isLoading, sendMessage, reset };
 }

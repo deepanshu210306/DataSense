@@ -1,5 +1,3 @@
-import type { DatasetId } from "@/lib/datasets/types";
-
 export type ChatRole = "user" | "assistant";
 
 /** Message shape sent from the browser to /api/chat */
@@ -10,7 +8,8 @@ export type ChatHistoryMessage = {
 
 export type ChatRequestBody = {
   message: string;
-  datasetId: DatasetId;
+  conversationId?: string;
+  resourceId: string;
   history?: ChatHistoryMessage[];
 };
 

@@ -22,7 +22,7 @@ const serverEnvSchema = z.object({
       .url()
       .default("https://data.gov.in/api/datastore/resource.json"),
   ),
-  DATA_GOV_IN_FETCH_LIMIT: z.coerce.number().int().min(1).max(500).default(50),
+  DATA_GOV_IN_FETCH_LIMIT: z.coerce.number().int().min(1).max(500).default(80),
   DATA_GOV_IN_TIMEOUT_MS: z.coerce
     .number()
     .int()
@@ -40,18 +40,28 @@ const serverEnvSchema = z.object({
     .int()
     .min(256)
     .max(65536)
-    .default(2048),
+    .default(1024),
   GROQ_TEMPERATURE: z.coerce.number().min(0).max(2).default(0.3),
   /** Retries when Groq returns HTTP 429 (rate limit) */
   GROQ_RATE_LIMIT_MAX_RETRIES: z.coerce.number().int().min(0).max(5).default(3),
+  /**
+   * Estimated input-token budget for system prompt + history (Groq on_demand
+   * tier caps total request size around 8000 tokens including completion).
+   */
+  GROQ_MAX_PROMPT_TOKENS: z.coerce
+    .number()
+    .int()
+    .min(1000)
+    .max(120000)
+    .default(6500),
 
   /** Max characters of dataset JSON injected into the LLM prompt */
   CHAT_MAX_CONTEXT_CHARS: z.coerce
     .number()
     .int()
-    .min(2000)
+    .min(1000)
     .max(100000)
-    .default(18000),
+    .default(5000),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
