@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { Eye, EyeOff } from "lucide-react";
 import { signInSchema } from "@/schemas/signInSchema";
 import { registerSchema } from "@/schemas/registerSchema";
 import { cn } from "@/lib/utils";
@@ -17,6 +18,7 @@ export function EmailAuthForm({ isLight, onSuccess }: EmailAuthFormProps) {
   const [mode, setMode] = useState<"signIn" | "signUp">("signIn");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -52,7 +54,7 @@ export function EmailAuthForm({ isLight, onSuccess }: EmailAuthFormProps) {
         redirect: false,
       });
 
-      if (result?.error) {
+      if (!result?.ok) {
         setError(
           mode === "signUp"
             ? "Account created but sign-in failed. Try signing in."
@@ -85,6 +87,7 @@ export function EmailAuthForm({ isLight, onSuccess }: EmailAuthFormProps) {
           type="button"
           onClick={() => {
             setMode("signIn");
+            setShowPassword(false);
             setError(null);
           }}
           className={cn(
@@ -102,6 +105,7 @@ export function EmailAuthForm({ isLight, onSuccess }: EmailAuthFormProps) {
           type="button"
           onClick={() => {
             setMode("signUp");
+            setShowPassword(false);
             setError(null);
           }}
           className={cn(
@@ -137,13 +141,13 @@ export function EmailAuthForm({ isLight, onSuccess }: EmailAuthFormProps) {
             )}
           />
         </div>
-        <div>
+        <div className="relative">
           <label htmlFor="auth-password" className="sr-only">
             Password
           </label>
           <input
             id="auth-password"
-            type="password"
+            type={showPassword ? "text" : "password"}
             autoComplete={
               mode === "signUp" ? "new-password" : "current-password"
             }
@@ -151,12 +155,29 @@ export function EmailAuthForm({ isLight, onSuccess }: EmailAuthFormProps) {
             onChange={(e) => setPassword(e.target.value)}
             placeholder={mode === "signUp" ? "Password (min 8 chars)" : "Password"}
             className={cn(
-              "w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20",
+              "w-full rounded-xl border py-2.5 pl-3 pr-10 text-sm outline-none transition focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20",
               isLight
                 ? "border-black/[0.1] bg-white text-neutral-900"
                 : "border-white/[0.1] bg-black/20 text-neutral-100",
             )}
           />
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            className={cn(
+              "absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg transition",
+              isLight
+                ? "text-neutral-500 hover:bg-black/[0.04] hover:text-neutral-700"
+                : "text-neutral-400 hover:bg-white/[0.06] hover:text-neutral-200",
+            )}
+            aria-label={showPassword ? "Hide password" : "Show password"}
+          >
+            {showPassword ? (
+              <EyeOff className="h-4 w-4" aria-hidden />
+            ) : (
+              <Eye className="h-4 w-4" aria-hidden />
+            )}
+          </button>
         </div>
 
         {error && (

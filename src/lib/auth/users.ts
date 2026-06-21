@@ -21,10 +21,13 @@ function normalizeEmail(email: string): string {
 export async function findUserByEmail(
   email: string,
 ): Promise<PasswordUserDocument | null> {
+  const normalized = normalizeEmail(email);
   const db = await getDb();
   const row = await db
     .collection<PasswordUserDocument>(USERS_COLLECTION)
-    .findOne({ email: normalizeEmail(email) });
+    .findOne({
+      email: { $regex: new RegExp(`^${normalized.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") },
+    });
   return row ?? null;
 }
 

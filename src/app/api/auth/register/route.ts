@@ -19,7 +19,9 @@ export async function POST(req: Request) {
     const existing = await findUserByEmail(email);
     if (existing) {
       return jsonError(
-        "An account with this email already exists.",
+        existing.password
+          ? "An account with this email already exists."
+          : "This email is registered without a password. Sign up with a different email or contact support.",
         409,
         "CONFLICT",
       );

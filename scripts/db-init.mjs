@@ -44,6 +44,10 @@ try {
     { key: { resolvedAt: -1 } },
   ]);
 
+  await db.collection("users").createIndexes([
+    { key: { email: 1 }, unique: true },
+  ]);
+
   for (const seed of SEED_DATASETS) {
     await db.collection("datasets").updateOne(
       { _id: seed._id },
