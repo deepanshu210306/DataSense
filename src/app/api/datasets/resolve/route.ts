@@ -32,7 +32,7 @@ export async function POST(req: Request) {
 
     return Response.json({
       dataset: {
-        resourceId: dataset._id,
+        resourceId: dataset.resourceId,
         title: dataset.title,
         portalUrl: dataset.portalUrl,
         fields: dataset.fields,

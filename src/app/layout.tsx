@@ -27,9 +27,17 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      data-theme="dark"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem("datasense-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}})();`,
+          }}
+        />
+      </head>
       <body className="min-h-full font-sans">
         <AppProviders>{children}</AppProviders>
       </body>

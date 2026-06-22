@@ -1,16 +1,26 @@
 import { AppError } from "@/lib/errors";
-import { getDb } from "@/lib/mongodb";
-import {
-  COLLECTIONS,
-  type ChatMessageDocument,
-  type ConversationDocument,
-} from "@/lib/mongodb/collections";
+import { connectDB } from "@/lib/mongoose";
+import { Conversation, type IConversation } from "@/models/Conversation";
+import { Message, type IMessage } from "@/models/Message";
+import { Dataset, type IDataset } from "@/models/Dataset";
+
+function newId(): string {
+  return crypto.randomUUID();
+}
 
 export type ConversationSummary = {
   id: string;
   title: string;
   updatedAt: Date;
   resourceId: string;
+};
+
+export type ConversationRecord = {
+  id: string;
+  userId: string;
+  title: string;
+  datasetId: string;
+  datasetTitle?: string;
 };
 
 export type StoredChatMessage = {
@@ -22,43 +32,51 @@ export type StoredChatMessage = {
   createdAt: Date;
 };
 
-function newId(): string {
-  return crypto.randomUUID();
-}
-
 function titleFromMessage(message: string): string {
   const trimmed = message.trim().replace(/\s+/g, " ");
   if (trimmed.length <= 60) return trimmed;
   return `${trimmed.slice(0, 57)}…`;
 }
 
+function toRecord(doc: IConversation): ConversationRecord {
+  return {
+    id: String(doc._id),
+    userId: String(doc.userId),
+    title: doc.title,
+    datasetId: doc.datasetId,
+    datasetTitle: doc.datasetTitle,
+  };
+}
+
 export async function listConversations(
   userId: string,
 ): Promise<ConversationSummary[]> {
-  const db = await getDb();
-  const rows = await db
-    .collection<ConversationDocument>(COLLECTIONS.conversations)
-    .find({ userId })
+  await connectDB();
+  const rows = await Conversation.find({ userId })
     .sort({ updatedAt: -1 })
     .limit(50)
-    .toArray();
+    .lean<IConversation[]>()
+    .exec();
 
   return rows.map((row) => ({
-    id: row._id,
+    id: String(row._id),
     title: row.title,
     updatedAt: row.updatedAt,
-    resourceId: row.resourceId,
+    resourceId:
+      row.datasetId ??
+      (row as IConversation & { resourceId?: string }).resourceId ??
+      "",
   }));
 }
 
 export async function getConversationForUser(
   conversationId: string,
   userId: string,
-): Promise<ConversationDocument> {
-  const db = await getDb();
-  const row = await db
-    .collection<ConversationDocument>(COLLECTIONS.conversations)
-    .findOne({ _id: conversationId, userId });
+): Promise<ConversationRecord> {
+  await connectDB();
+  const row = await Conversation.findOne({ _id: conversationId, userId })
+    .lean<IConversation>()
+    .exec();
 
   if (!row) {
     throw new AppError("Conversation not found.", {
@@ -67,28 +85,28 @@ export async function getConversationForUser(
     });
   }
 
-  return row;
+  return toRecord(row);
 }
 
 export async function getConversationMessages(
   conversationId: string,
   userId: string,
 ): Promise<StoredChatMessage[]> {
-  await getConversationForUser(conversationId, userId);
-  const db = await getDb();
+  const conversation = await getConversationForUser(conversationId, userId);
 
-  const rows = await db
-    .collection<ChatMessageDocument>(COLLECTIONS.chatMessages)
-    .find({ conversationId })
+  const rows = await Message.find({ conversationId })
     .sort({ createdAt: 1 })
-    .toArray();
+    .lean<IMessage[]>()
+    .exec();
 
   return rows.map((row) => ({
-    id: row._id,
+    id: String(row._id),
     role: row.role,
     content: row.content,
-    resolvedResourceId: row.resolvedResourceId,
-    resolvedDatasetLabel: row.resolvedDatasetLabel,
+    resolvedResourceId:
+      row.role === "assistant" ? conversation.datasetId : null,
+    resolvedDatasetLabel:
+      row.role === "assistant" ? conversation.datasetTitle ?? null : null,
     createdAt: row.createdAt,
   }));
 }
@@ -97,22 +115,21 @@ export async function createConversation(
   userId: string,
   resourceId: string,
   title = "New chat",
-): Promise<ConversationDocument> {
-  const now = new Date();
-  const doc: ConversationDocument = {
+): Promise<ConversationRecord> {
+  await connectDB();
+  const dataset = await Dataset.findOne({ resourceId: resourceId.toLowerCase() })
+    .lean<IDataset>()
+    .exec();
+
+  const doc = await Conversation.create({
     _id: newId(),
     userId,
     title,
-    resourceId,
-    createdAt: now,
-    updatedAt: now,
-  };
+    datasetId: resourceId,
+    datasetTitle: dataset?.title,
+  });
 
-  const db = await getDb();
-  await db
-    .collection<ConversationDocument>(COLLECTIONS.conversations)
-    .insertOne(doc as ConversationDocument);
-  return doc;
+  return toRecord(doc.toObject());
 }
 
 export async function ensureConversation(
@@ -120,7 +137,7 @@ export async function ensureConversation(
   conversationId: string | undefined,
   resourceId: string,
   firstMessage?: string,
-): Promise<ConversationDocument> {
+): Promise<ConversationRecord> {
   if (conversationId) {
     return getConversationForUser(conversationId, userId);
   }
@@ -129,49 +146,39 @@ export async function ensureConversation(
   return createConversation(userId, resourceId, title);
 }
 
-export async function touchConversation(conversationId: string) {
-  const db = await getDb();
-  await db
-    .collection<ConversationDocument>(COLLECTIONS.conversations)
-    .updateOne({ _id: conversationId }, { $set: { updatedAt: new Date() } });
+export async function touchConversation(conversationId: string): Promise<void> {
+  await connectDB();
+  await Conversation.updateOne(
+    { _id: conversationId },
+    { $set: { updatedAt: new Date() } },
+  ).exec();
 }
 
 export async function saveChatMessage(input: {
   conversationId: string;
   role: "user" | "assistant";
   content: string;
-  resolvedResourceId?: string;
-  resolvedDatasetLabel?: string;
-}) {
-  const doc: ChatMessageDocument = {
+}): Promise<void> {
+  await connectDB();
+  await Message.create({
     _id: newId(),
     conversationId: input.conversationId,
     role: input.role,
     content: input.content,
-    resolvedResourceId: input.resolvedResourceId ?? null,
-    resolvedDatasetLabel: input.resolvedDatasetLabel ?? null,
-    createdAt: new Date(),
-  };
-
-  const db = await getDb();
-  await db
-    .collection<ChatMessageDocument>(COLLECTIONS.chatMessages)
-    .insertOne(doc as ChatMessageDocument);
+  });
   await touchConversation(input.conversationId);
-  return doc;
 }
 
 export async function getRecentHistory(
   conversationId: string,
   limit = 12,
 ): Promise<Array<{ role: "user" | "assistant"; content: string }>> {
-  const db = await getDb();
-  const rows = await db
-    .collection<ChatMessageDocument>(COLLECTIONS.chatMessages)
-    .find({ conversationId })
+  await connectDB();
+  const rows = await Message.find({ conversationId })
     .sort({ createdAt: -1 })
     .limit(limit)
-    .toArray();
+    .lean<IMessage[]>()
+    .exec();
 
   return rows.reverse().map((row) => ({
     role: row.role,

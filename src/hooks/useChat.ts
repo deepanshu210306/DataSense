@@ -36,7 +36,9 @@ type UseChatOptions = {
 export function useChat(options: UseChatOptions) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isSending, setIsSending] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(() =>
+    Boolean(options.conversationId),
+  );
   const abortRef = useRef<AbortController | null>(null);
   const conversationIdRef = useRef<string | null>(
     options.conversationId ?? null,
@@ -60,50 +62,59 @@ export function useChat(options: UseChatOptions) {
 
   useEffect(() => () => cancelRequest(), [cancelRequest]);
 
-  const loadConversation = useCallback(async (conversationId: string) => {
-    setIsLoading(true);
-    cancelRequest();
-    try {
-      const response = await fetch(`/api/conversations/${conversationId}`);
-      if (!response.ok) {
-        throw new Error("Could not load conversation.");
+  const fetchConversation = useCallback(
+    async (conversationId: string) => {
+      cancelRequest();
+      try {
+        const response = await fetch(`/api/conversations/${conversationId}`);
+        if (!response.ok) {
+          throw new Error("Could not load conversation.");
+        }
+        const data = (await response.json()) as {
+          messages: Array<{
+            id: string;
+            role: ChatRole;
+            content: string;
+            resolvedResourceId?: string;
+            resolvedDatasetLabel?: string;
+          }>;
+        };
+        setMessages(
+          data.messages.map((m) => ({
+            id: m.id,
+            role: m.role,
+            content: m.content,
+            resolvedResourceId: m.resolvedResourceId ?? undefined,
+            resolvedDatasetLabel: m.resolvedDatasetLabel ?? undefined,
+          })),
+        );
+      } catch (error) {
+        toast.error("Failed to load chat", {
+          description:
+            error instanceof Error ? error.message : "Please try again.",
+        });
+        setMessages([]);
+      } finally {
+        setIsLoading(false);
       }
-      const data = (await response.json()) as {
-        messages: Array<{
-          id: string;
-          role: ChatRole;
-          content: string;
-          resolvedResourceId?: string;
-          resolvedDatasetLabel?: string;
-        }>;
-      };
-      setMessages(
-        data.messages.map((m) => ({
-          id: m.id,
-          role: m.role,
-          content: m.content,
-          resolvedResourceId: m.resolvedResourceId ?? undefined,
-          resolvedDatasetLabel: m.resolvedDatasetLabel ?? undefined,
-        })),
-      );
-    } catch (error) {
-      toast.error("Failed to load chat", {
-        description:
-          error instanceof Error ? error.message : "Please try again.",
-      });
-      setMessages([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [cancelRequest]);
+    },
+    [cancelRequest],
+  );
 
   useEffect(() => {
-    if (options.conversationId) {
-      void loadConversation(options.conversationId);
-    } else {
-      setMessages([]);
-    }
-  }, [options.conversationId, loadConversation]);
+    if (!options.conversationId) return;
+
+    let cancelled = false;
+    const id = options.conversationId;
+
+    queueMicrotask(() => {
+      if (!cancelled) void fetchConversation(id);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [options.conversationId, fetchConversation]);
 
   const reset = useCallback(() => {
     cancelRequest();

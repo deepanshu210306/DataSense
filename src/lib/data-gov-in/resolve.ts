@@ -2,22 +2,20 @@ import { AppError } from "@/lib/errors";
 import { fetchDataGovResource } from "@/lib/data-gov-in/client";
 import type { DataGovFetchResult } from "@/lib/data-gov-in/types";
 import { upsertDataset } from "@/lib/datasets/service";
-import type { CachedDataset, DatasetField } from "@/lib/datasets/types";
+import type { CachedDataset } from "@/lib/datasets/types";
 import { isResourceId, RESOURCE_ID_REGEX } from "@/schemas/resourceIdSchema";
 
 const UUID_PATTERN = RESOURCE_ID_REGEX;
 
-function fieldsFromResult(data: DataGovFetchResult): DatasetField[] {
+function fieldsFromResult(data: DataGovFetchResult): string[] {
   if (data.fields?.length) {
-    return data.fields.map((f) => ({
-      id: f.id,
-      name: f.name,
-      type: f.type,
-    }));
+    return data.fields
+      .map((f) => f.name ?? f.id)
+      .filter((name): name is string => Boolean(name));
   }
   const first = data.records[0];
   if (first && typeof first === "object") {
-    return Object.keys(first).map((key) => ({ id: key, name: key }));
+    return Object.keys(first);
   }
   return [];
 }
@@ -76,7 +74,7 @@ export async function resolveByResourceId(
   const title = data.title ?? titleFromPayload(data, id);
 
   return upsertDataset({
-    _id: id,
+    resourceId: id,
     title,
     portalUrl: `https://www.data.gov.in/resource/${id}`,
     fields: fieldsFromResult(data),

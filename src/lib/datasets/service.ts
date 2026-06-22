@@ -1,56 +1,64 @@
-import { getDb } from "@/lib/mongodb";
-import {
-  COLLECTIONS,
-  type DatasetDocument,
-} from "@/lib/mongodb/collections";
+import { connectDB } from "@/lib/mongoose";
+import { Dataset, type IDataset } from "@/models/Dataset";
 import type { CachedDataset, DatasetSummary } from "./types";
 
-function toSummary(doc: DatasetDocument): DatasetSummary {
+function toSummary(doc: Pick<IDataset, "resourceId" | "title" | "portalUrl" | "fields">): DatasetSummary {
   return {
-    resourceId: doc._id,
+    resourceId: doc.resourceId,
     title: doc.title,
     portalUrl: doc.portalUrl,
-    fields: doc.fields,
+    fields: doc.fields ?? [],
+  };
+}
+
+function toCached(doc: IDataset): CachedDataset {
+  return {
+    resourceId: doc.resourceId,
+    title: doc.title,
+    portalUrl: doc.portalUrl,
+    fields: doc.fields ?? [],
+    resolvedAt: doc.resolvedAt,
+    addedByUserId: doc.addedByUserId ? String(doc.addedByUserId) : undefined,
   };
 }
 
 export async function listDatasets(): Promise<DatasetSummary[]> {
-  const db = await getDb();
-  const rows = await db
-    .collection<DatasetDocument>(COLLECTIONS.datasets)
-    .find({})
-    .sort({ title: 1 })
-    .toArray();
+  await connectDB();
+  const rows = await Dataset.find({}).sort({ title: 1 }).lean<IDataset[]>().exec();
   return rows.map(toSummary);
 }
 
 export async function getDatasetByResourceId(
   resourceId: string,
 ): Promise<CachedDataset | null> {
-  const db = await getDb();
-  const row = await db
-    .collection<DatasetDocument>(COLLECTIONS.datasets)
-    .findOne({ _id: resourceId });
-  return row ?? null;
+  await connectDB();
+  const row = await Dataset.findOne({ resourceId: resourceId.toLowerCase() })
+    .lean<IDataset>()
+    .exec();
+  return row ? toCached(row) : null;
 }
 
 export async function upsertDataset(
   input: Omit<CachedDataset, "resolvedAt"> & { resolvedAt?: Date },
 ): Promise<CachedDataset> {
+  await connectDB();
   const resolvedAt = input.resolvedAt ?? new Date();
-  const doc: DatasetDocument = {
-    _id: input._id,
-    title: input.title,
-    portalUrl: input.portalUrl,
-    fields: input.fields,
-    resolvedAt,
-    addedByUserId: input.addedByUserId,
-  };
+  const row = await Dataset.findOneAndUpdate(
+    { resourceId: input.resourceId.toLowerCase() },
+    {
+      $set: {
+        resourceId: input.resourceId.toLowerCase(),
+        title: input.title,
+        portalUrl: input.portalUrl,
+        fields: input.fields,
+        resolvedAt,
+        ...(input.addedByUserId ? { addedByUserId: input.addedByUserId } : {}),
+      },
+    },
+    { upsert: true, returnDocument: "after", setDefaultsOnInsert: true },
+  )
+    .lean<IDataset>()
+    .exec();
 
-  const db = await getDb();
-  await db
-    .collection<DatasetDocument>(COLLECTIONS.datasets)
-    .updateOne({ _id: doc._id }, { $set: doc }, { upsert: true });
-
-  return doc;
+  return toCached(row as IDataset);
 }

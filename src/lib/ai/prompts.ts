@@ -8,11 +8,7 @@ export function buildSystemPrompt(
 ): string {
   const fieldSummary =
     dataset.fields.length > 0
-      ? dataset.fields
-          .map((f) => f.name ?? f.id)
-          .filter(Boolean)
-          .slice(0, 40)
-          .join(", ")
+      ? dataset.fields.filter(Boolean).slice(0, 40).join(", ")
       : data.fields?.length
         ? data.fields
             .map((f) => f.name ?? f.id)
@@ -28,7 +24,7 @@ Answer from the live row sample below only. The user manually selected this data
 ## Active dataset
 - Name: ${dataset.title}
 - Portal: ${dataset.portalUrl}
-- Resource ID: ${dataset._id}
+- Resource ID: ${dataset.resourceId}
 - Rows in this prompt: ${data.count}${data.total != null ? ` (API total: ${data.total})` : ""}
 - Columns / fields: ${fieldSummary}
 

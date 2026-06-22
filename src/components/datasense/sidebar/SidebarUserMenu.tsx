@@ -115,15 +115,15 @@ export function SidebarUserMenu({
   const displayName = user?.name ?? "Signed in user";
   const displayEmail = user?.email ?? "";
 
-  useEffect(() => {
-    if (!profileOpen) setDatasetOpen(false);
-  }, [profileOpen]);
+  const closeProfile = () => {
+    setProfileOpen(false);
+    setDatasetOpen(false);
+  };
 
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
       if (!profileRef.current?.contains(e.target as Node)) {
-        setProfileOpen(false);
-        setDatasetOpen(false);
+        closeProfile();
       }
     };
     if (profileOpen) {
@@ -205,7 +205,7 @@ export function SidebarUserMenu({
               type="button"
               onClick={() => {
                 onSettings();
-                setProfileOpen(false);
+                closeProfile();
                 if (mobile) onCloseMobile?.();
               }}
               className={cn(
@@ -241,7 +241,7 @@ export function SidebarUserMenu({
               type="button"
               onClick={() => {
                 window.location.href = "/";
-                setProfileOpen(false);
+                closeProfile();
                 if (mobile) onCloseMobile?.();
               }}
               className={cn(
@@ -258,7 +258,7 @@ export function SidebarUserMenu({
               type="button"
               onClick={() => {
                 onSignOut();
-                setProfileOpen(false);
+                closeProfile();
                 if (mobile) onCloseMobile?.();
               }}
               className={cn(

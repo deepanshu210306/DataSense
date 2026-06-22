@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   BarChart3,
@@ -100,6 +100,19 @@ export function DatasetPicker({
     [addInput, datasets],
   );
 
+  const handleOpenChange = useCallback(
+    (next: boolean) => {
+      if (!next) {
+        setSearchQuery("");
+        setShowAdd(false);
+        setAddInput("");
+        setResolveError(null);
+      }
+      onOpenChange(next);
+    },
+    [onOpenChange],
+  );
+
   const resolveDataset = useCallback(async () => {
     const trimmed = addInput.trim();
     if (!trimmed) return;
@@ -109,7 +122,7 @@ export function DatasetPicker({
       onResourceIdChange(existing.resourceId);
       setAddInput("");
       setShowAdd(false);
-      onOpenChange(false);
+      handleOpenChange(false);
       return;
     }
 
@@ -141,23 +154,14 @@ export function DatasetPicker({
         onDatasetsRefresh();
         setAddInput("");
         setShowAdd(false);
-        onOpenChange(false);
+        handleOpenChange(false);
       }
     } catch {
       setResolveError("Network error. Try again.");
     } finally {
       setResolving(false);
     }
-  }, [addInput, datasets, onDatasetsRefresh, onOpenChange, onResourceIdChange]);
-
-  useEffect(() => {
-    if (!open) {
-      setSearchQuery("");
-      setShowAdd(false);
-      setAddInput("");
-      setResolveError(null);
-    }
-  }, [open]);
+  }, [addInput, datasets, handleOpenChange, onDatasetsRefresh, onResourceIdChange]);
 
   return (
     <div className="px-2 pb-1 pt-1">
@@ -171,7 +175,7 @@ export function DatasetPicker({
       </p>
       <button
         type="button"
-        onClick={() => onOpenChange(!open)}
+        onClick={() => handleOpenChange(!open)}
         className={cn(
           "flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm transition-colors",
           isLight
@@ -242,7 +246,7 @@ export function DatasetPicker({
                       type="button"
                       onClick={() => {
                         onResourceIdChange(d.resourceId);
-                        onOpenChange(false);
+                        handleOpenChange(false);
                       }}
                       className={cn(
                         "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition-colors",
@@ -304,7 +308,7 @@ export function DatasetPicker({
                           onResourceIdChange(existingFromAddInput.resourceId);
                           setAddInput("");
                           setShowAdd(false);
-                          onOpenChange(false);
+                          handleOpenChange(false);
                         }}
                         className="mt-1 font-medium underline underline-offset-2"
                       >

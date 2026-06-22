@@ -151,7 +151,9 @@ export async function runDatasetChat(
   }
 
   const fetchLimit = Math.min(env.DATA_GOV_IN_FETCH_LIMIT, 20);
-  const data = await fetchDataGovResource(dataset._id, { limit: fetchLimit });
+  const data = await fetchDataGovResource(dataset.resourceId, {
+    limit: fetchLimit,
+  });
 
   if (data.records.length === 0) {
     throw new AppError(
@@ -180,7 +182,7 @@ export async function runDatasetChat(
   const stream = await streamGroqChat({ messages, signal: options.signal });
   return {
     stream,
-    resolvedResourceId: dataset._id,
+    resolvedResourceId: dataset.resourceId,
     resolvedDatasetLabel: dataset.title,
   };
 }

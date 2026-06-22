@@ -12,12 +12,11 @@
     "db:clear-chats": "node --env-file=.env.local scripts/clear-chat-collections.mjs"
   },
   "dependencies": {
-    "@auth/mongodb-adapter": "^3.11.2",
     "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
     "framer-motion": "^12.38.0",
     "lucide-react": "^1.14.0",
-    "mongodb": "^6.21.0",
+    "mongoose": "^9.7.1",
     "next": "16.2.6",
     "next-auth": "^5.0.0-beta.31",
     "react": "19.2.4",

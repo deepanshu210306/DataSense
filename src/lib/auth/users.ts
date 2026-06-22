@@ -1,56 +1,31 @@
 import bcrypt from "bcryptjs";
-import { getDb } from "@/lib/mongodb";
+import { connectDB } from "@/lib/mongoose";
+import { User, type IUser } from "@/models/User";
 
-const USERS_COLLECTION = "users";
 const BCRYPT_ROUNDS = 12;
-
-export type PasswordUserDocument = {
-  _id: string;
-  email: string;
-  password: string;
-  name?: string;
-  emailVerified?: Date | null;
-  image?: string | null;
-  createdAt: Date;
-};
 
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
-export async function findUserByEmail(
-  email: string,
-): Promise<PasswordUserDocument | null> {
-  const normalized = normalizeEmail(email);
-  const db = await getDb();
-  const row = await db
-    .collection<PasswordUserDocument>(USERS_COLLECTION)
-    .findOne({
-      email: { $regex: new RegExp(`^${normalized.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") },
-    });
-  return row ?? null;
+export async function findUserByEmail(email: string): Promise<IUser | null> {
+  await connectDB();
+  return User.findOne({ email: normalizeEmail(email) }).lean<IUser>().exec();
 }
 
 export async function createPasswordUser(
   email: string,
   plainPassword: string,
-): Promise<PasswordUserDocument> {
+): Promise<IUser> {
+  await connectDB();
   const normalized = normalizeEmail(email);
   const password = await bcrypt.hash(plainPassword, BCRYPT_ROUNDS);
-  const now = new Date();
-  const doc: PasswordUserDocument = {
-    _id: crypto.randomUUID(),
+  const doc = await User.create({
     email: normalized,
     password,
     name: normalized,
-    emailVerified: null,
-    image: null,
-    createdAt: now,
-  };
-
-  const db = await getDb();
-  await db.collection(USERS_COLLECTION).insertOne(doc as never);
-  return doc;
+  });
+  return doc.toObject();
 }
 
 export async function verifyPassword(

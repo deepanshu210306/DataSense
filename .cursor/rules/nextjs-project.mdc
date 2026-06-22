@@ -20,122 +20,154 @@ resource on data.gov.in by pasting its page URL or resource ID.
   for fetching ANY resource by `resource_id` (UUID). There is no public catalog
   search API on data.gov.in — resource IDs can only be obtained by a human finding
   a dataset's page and either reading the ID off it directly, or the server
-  scraping that one page for UUID candidates and testing them (see "Dataset
-  Resolution" below). Don't assume a keyword-search endpoint exists; it doesn't.
-- Auth.js v5 (`next-auth`) — Google OAuth **and** a Credentials (email/password)
-  provider. Session strategy is JWT (required for Credentials; it cannot use the
-  database session strategy).
-- bcryptjs for hashing passwords used by the Credentials provider.
-- MongoDB via the **native `mongodb` driver** + `@auth/mongodb-adapter` — there is
-  no Mongoose in this project. Don't introduce it.
+  scraping that one page for UUID candidates and testing them.
+- Auth.js v5 (`next-auth`) — Google OAuth AND a Credentials (email/password)
+  provider. Session strategy is JWT (required for Credentials).
+- bcryptjs for hashing passwords.
+- MongoDB via **Mongoose** (`mongoose` package) — all collections are defined as
+  Mongoose models in `src/models/`. Do NOT use the native `mongodb` driver directly
+  or `@auth/mongodb-adapter`. Auth.js uses a custom Mongoose-based adapter or the
+  Credentials provider directly.
 - Tailwind CSS + shadcn/ui (Radix primitives) for UI
-- Zod for server env validation and (increasingly) API request body validation —
-  schemas live in `src/schemas/`.
+- Zod for server env validation and API request body validation — schemas live in
+  `src/schemas/`.
 
-# Dataset Resolution (replaces the old fixed registry)
+# Database — Mongoose Models (src/models/)
 
-- Datasets are no longer a hardcoded 3-entry enum. A dataset is identified by its
-  raw `resource_id` (UUID) — any valid one works with the existing API key.
-- Users add a dataset to a conversation by either:
-  1. Pasting a raw resource_id directly — validate by calling
-     `api.data.gov.in/resource/{id}?limit=1`; if it returns records, it's valid.
-  2. Pasting a data.gov.in dataset page URL — the server fetches that one page's
-     HTML, regex-extracts UUID candidates (same approach as the existing
-     `scripts/find-census-resource.mjs`), and tests each against the API until one
-     returns records. This is a single-page fetch, not catalog-wide crawling.
-- Resolved datasets (id, title from the API response's `title` field, portalUrl,
-  field list, resolvedAt) are cached in a shared `datasets` collection in MongoDB so
-  the same dataset isn't re-resolved on every message, and so one user resolving a
-  dataset benefits everyone (an organically-grown shared library, not a per-user
-  copy). This is a deliberate exception to "Mongo is only for users + chat
-  history" — confirmed with the project owner because re-scraping a page on every
-  chat message would be slow and fragile.
-- There is no question-text auto-detection across unlimited datasets — that only
-  worked when there were 3 known Census categories to regex-match against (the old
-  `dataset-router.ts`). A conversation is now explicitly tied to whichever
-  dataset(s) the user selected/added, not guessed from free text.
+All MongoDB access goes through Mongoose models. One file per model, PascalCase
+filename matching the model name. Each model file exports:
+  1. A TypeScript interface for the document (e.g. `IUser`)
+  2. A Mongoose Schema
+  3. The compiled Model (with the Next.js hot-reload guard pattern:
+     `mongoose.models.User || mongoose.model<IUser>('User', UserSchema)`)
 
-# Project Structure (actual, not aspirational)
+Models:
 
-- `src/app/api/*/route.ts` — one responsibility per route: `chat`, `conversations`,
-  `conversations/[id]`, `datasets`, `datasets/resolve` (new — resolves a pasted
-  URL/resource_id), `auth/[...nextauth]`, `auth/register` (new — credentials signup).
+- `src/models/User.ts`
+  Fields: name, email (unique, required), password (optional — absent for Google
+  sign-in users), image, emailVerified, createdAt, updatedAt.
+  The `password` field is optional because Google OAuth users won't have one.
+
+- `src/models/Conversation.ts`
+  Fields: userId (ref: 'User'), title, datasetId (the resource_id string),
+  datasetTitle, createdAt, updatedAt.
+
+- `src/models/Message.ts`
+  Fields: conversationId (ref: 'Conversation'), role ('user' | 'assistant'),
+  content, createdAt.
+
+- `src/models/Dataset.ts`
+  Fields: resourceId (unique, the UUID), title, portalUrl, fields (array of
+  field name strings), resolvedAt, addedByUserId (ref: 'User').
+  This is a shared cache across all users — one user resolving a dataset benefits
+  everyone.
+
+# Project Structure
+
+- `src/models/` — Mongoose models (User, Conversation, Message, Dataset).
+- `src/schemas/` — Zod schemas for API request validation (registerSchema,
+  signInSchema, chatRequestSchema, createConversationSchema, datasetResolveSchema).
+- `src/lib/mongoose.ts` — cached Mongoose connection helper (use this in every
+  server-side file that needs the DB — do not open new connections per request).
+- `src/app/api/chat/route.ts` — Groq streaming chat handler.
+- `src/app/api/conversations/route.ts` — list + create conversations.
+- `src/app/api/conversations/[id]/route.ts` — get + delete one conversation.
+- `src/app/api/datasets/route.ts` — list resolved datasets from Dataset model.
+- `src/app/api/datasets/resolve/route.ts` — resolve a pasted URL or resource_id.
+- `src/app/api/auth/[...nextauth]/route.ts` — Auth.js handler.
+- `src/app/api/auth/register/route.ts` — email/password signup.
 - `src/app/chat/` and `src/app/chat/[id]/` — chat pages.
-- `src/components/datasense/` — chat UI, including `sidebar/DatasetPicker.tsx`
-  (now also handles adding a new dataset by URL/ID, not just picking from 3).
+- `src/components/datasense/` — chat UI components.
 - `src/components/marketing/` — logged-out landing page.
 - `src/components/providers/` — ThemeProvider, AppProviders.
-- `src/hooks/` — client hooks: `useChat`, `useConversations`.
-- `src/lib/ai/` — `chat-service.ts` (orchestration), `prompts.ts` (system prompt
-  builder). `dataset-router.ts` is removed/replaced — see "Dataset Resolution".
-- `src/lib/conversations/` — `service.ts`, `stream.ts`, `types.ts`.
-- `src/lib/data-gov-in/` — data.gov.in API client (`fetchDataGovResource`) plus a
-  new resolver module for the URL/ID-to-resource_id flow.
-- `src/lib/datasets/` — now reads/writes the shared MongoDB `datasets` cache
-  instead of a hardcoded `DEFAULT_RESOURCES` map.
-- `src/lib/groq/` — Groq API client + error mapping.
-- `src/lib/mongodb.ts` + `src/lib/mongodb/collections.ts` — cached client,
-  collection names/types (now includes `datasets`).
-- `src/lib/env.ts` — Zod-validated server env. `src/lib/errors.ts` — `AppError`.
-- `src/lib/api-response.ts` — shared `jsonError()` helper for API routes.
-- `src/auth.config.ts` — Edge-safe config used by `middleware.ts`: callbacks,
-  pages, and the Google provider only. **Must never** import bcrypt, the
-  `mongodb` driver, or anything else Node-only — it runs on the Edge runtime.
-- `src/auth.ts` — full config: spreads `authConfig`, adds the Mongo adapter, AND
-  the Credentials provider (its `authorize()` queries MongoDB and calls
-  `bcrypt.compare`, both Node-only). Credentials provider must be defined here,
-  never in `auth.config.ts`.
-- `src/middleware.ts` — protects `/chat/:path*`.
-- `src/types/next-auth.d.ts` — extends `Session.user` with `id`.
+- `src/hooks/` — useChat, useConversations.
+- `src/lib/ai/` — chat-service.ts, prompts.ts.
+- `src/lib/conversations/` — service.ts (uses Mongoose models), stream.ts, types.ts.
+- `src/lib/data-gov-in/` — API client + resolve.ts.
+- `src/lib/api-response.ts` — shared jsonError() and jsonOk() helpers.
+- `src/lib/env.ts` — Zod-validated server env.
+- `src/lib/errors.ts` — AppError class.
+- `src/auth.config.ts` — Edge-safe config for middleware.ts (Google provider,
+  callbacks, pages). Must NEVER import mongoose, bcrypt, or anything Node-only.
+- `src/auth.ts` — full config: spreads authConfig, adds Credentials provider
+  (authorize() uses Mongoose User model + bcrypt.compare — both Node-only, so
+  this file must never be imported in middleware.ts).
+- `src/middleware.ts` — protects /chat/:path*, imports from src/auth.config.ts only.
+- `src/types/next-auth.d.ts` — extends Session.user with id.
+
+# Mongoose Connection Pattern
+
+src/lib/mongoose.ts must use the standard Next.js cached connection pattern:
+
+```typescript
+import mongoose from 'mongoose';
+
+const MONGODB_URI = process.env.MONGODB_URI!;
+let cached = global.mongoose || { conn: null, promise: null };
+
+export async function connectDB() {
+  if (cached.conn) return cached.conn;
+  if (!cached.promise) {
+    cached.promise = mongoose.connect(MONGODB_URI).then(m => m);
+  }
+  cached.conn = await cached.promise;
+  return cached.conn;
+}
+```
+
+Every server-side function that touches the DB calls `await connectDB()` at the top.
+Never open a second connection. Never call mongoose.connect() outside this helper.
 
 # Conventions
 
-- Server Components by default. Add `"use client"` only when needed.
-- All Groq, data.gov.in, and database calls happen in `route.ts` handlers or
-  `src/lib/` helpers — never in client components.
-- Every API route checks the session via `auth()` first and returns 401 if
-  missing — never trust a client-supplied user id.
-- API routes return `{ error: string, code?: string }` via the shared
-  `jsonError()` helper in `src/lib/api-response.ts` — don't redefine it locally.
-- Request bodies are validated with Zod schemas from `src/schemas/`.
-- Use `async/await`; avoid `.then()` chains.
-- Keep route handlers thin — prompt construction, data shaping, and DB queries
-  belong in `src/lib/`.
-- Naming: PascalCase for components, camelCase for functions/variables.
+- Server Components by default. Add "use client" only when needed.
+- All Groq, data.gov.in, and database calls in route.ts handlers or src/lib/ —
+  never in client components.
+- Every API route checks the session via auth() first and returns 401 if missing.
+  Never trust a client-supplied user id.
+- API routes return { error: string, code?: string } via jsonError() from
+  src/lib/api-response.ts. Don't redefine it locally.
+- Request bodies validated with Zod schemas from src/schemas/.
+- Use async/await, not .then() chains.
+- Keep route handlers thin — logic belongs in src/lib/.
+- Naming: PascalCase for components and Mongoose models, camelCase for
+  functions/variables.
+
+# Dataset Resolution
+
+- Datasets are identified by a raw resource_id (UUID string), not a hardcoded enum.
+- Users add a dataset by pasting a data.gov.in page URL or a raw resource_id.
+- URL flow: fetch that one page's HTML, regex-extract UUID candidates, test each
+  against api.data.gov.in/resource/{id}?limit=1 until one returns records.
+- Resource ID flow: directly call api.data.gov.in/resource/{id}?limit=1.
+- Resolved datasets are upserted into the Dataset model (shared cache).
+- There is NO keyword search across datasets — data.gov.in has no such API.
 
 # Data & Cost Awareness
 
-- One API key works for any `resource_id` — don't gate dataset access behind a
-  fixed list in code.
-- LLM prompts trim dataset JSON to `CHAT_MAX_CONTEXT_CHARS` and cap chat history
-  to the last few turns — keep new code consistent with this budget.
-- Resolving a dataset from a pasted URL can require multiple HTTP calls (one page
-  fetch + one API test per UUID candidate) — this should happen once per dataset
-  (cached), not on every chat message.
+- One API key for all resource_ids — don't gate access behind a hardcoded list.
+- LLM prompts trim dataset JSON and cap chat history — keep new code consistent.
+- Dataset resolution (URL scraping) should happen once per dataset (cached in
+  Dataset model), never on every chat message.
 
 # Avoid
 
-- Don't add Mongoose — password users live in the same `users` collection the
-  MongoDB adapter manages, with an extra `password` field (Mongo has no fixed
-  schema).
+- Don't use the native mongodb driver directly — all DB access goes through Mongoose.
+- Don't add @auth/mongodb-adapter — not needed when using Mongoose + Credentials.
 - Don't add Express or a separate backend.
-- Don't import `@/auth` into `middleware.ts` or other Edge-runtime code — use
-  `@/auth.config` there instead.
-- Don't assume email/password signup and Google sign-in on the same email
-  auto-link — Auth.js doesn't do this by default; it's an explicit decision.
+- Don't import src/auth.ts into middleware.ts — use src/auth.config.ts only.
+- Don't assume Google + email/password on the same email auto-link accounts.
 - Never log or return the password hash to the client.
-- Don't hardcode API keys, resource_ids, model names, or the Mongo URI.
-- Don't claim or build a "search all datasets by keyword" feature — no such API
-  exists on data.gov.in. Dataset discovery is always: a human finds it on
-  data.gov.in's own site, then pastes the URL or ID into DataSense.
-- Don't re-add a fixed DatasetId enum/union type — resource IDs are arbitrary
-  strings now (validate as UUID-shaped, not as a closed set).
+- Don't hardcode API keys, resource_ids, model names, or MONGODB_URI.
+- Don't build a "search all datasets" feature — data.gov.in has no such API.
+- Don't re-add a fixed DatasetId enum — resource IDs are arbitrary UUID strings.
+- Don't open duplicate Mongoose connections — always use connectDB() from
+  src/lib/mongoose.ts.
 
 # When Unsure
 
-- If a request is ambiguous about where logic should live, ask before generating
-  code.
 - If a refactor changes an API route's response shape or headers, check
-  `useChat.ts` / `useConversations.ts` first — they parse exact field names.
-- If something requires persisting new data outside `users`, chat history, or the
-  `datasets` cache described above, flag it and ask before adding a collection.
+  useChat.ts and useConversations.ts first — they parse exact field names.
+- If something requires a new MongoDB collection, flag it and ask before adding
+  a new model.
+- Ask before generating code if the location for new logic is ambiguous.

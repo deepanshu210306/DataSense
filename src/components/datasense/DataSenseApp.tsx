@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { toast } from "sonner";
@@ -28,10 +28,7 @@ export function DataSenseApp({ conversationId }: DataSenseAppProps) {
   const router = useRouter();
   const { data: session } = useSession();
   const { theme } = useTheme();
-  const [resourceId, setResourceId] = useState<string | null>(null);
-  const [activeDatasetLabel, setActiveDatasetLabel] = useState<string | null>(
-    null,
-  );
+  const [pickedResourceId, setPickedResourceId] = useState<string | null>(null);
   const { conversations, refresh: refreshConversations } = useConversations();
   const {
     datasets,
@@ -39,10 +36,30 @@ export function DataSenseApp({ conversationId }: DataSenseAppProps) {
     refresh: refreshDatasets,
   } = useDatasets();
 
+  const conversationMatch = useMemo(
+    () =>
+      conversationId
+        ? conversations.find((c) => c.id === conversationId)
+        : undefined,
+    [conversationId, conversations],
+  );
+
+  const resourceId = useMemo(() => {
+    if (pickedResourceId) return pickedResourceId;
+    if (conversationMatch?.resourceId) return conversationMatch.resourceId;
+    if (!conversationId && datasets.length > 0) return datasets[0].resourceId;
+    return null;
+  }, [pickedResourceId, conversationMatch, conversationId, datasets]);
+
+  const activeDatasetLabel = useMemo(() => {
+    if (!resourceId) return null;
+    return datasets.find((d) => d.resourceId === resourceId)?.title ?? null;
+  }, [resourceId, datasets]);
+
   const { messages, isSending, isLoading, sendMessage, reset } = useChat({
     conversationId,
     resourceId,
-    onDatasetResolved: (_id, label) => setActiveDatasetLabel(label),
+    onDatasetResolved: (id) => setPickedResourceId(id),
     onConversationCreated: (id) => {
       router.replace(`/chat/${id}`);
       void refreshConversations();
@@ -58,36 +75,13 @@ export function DataSenseApp({ conversationId }: DataSenseAppProps) {
 
   const hasConversation = messages.length > 0;
 
-  useEffect(() => {
-    if (conversationId) {
-      const match = conversations.find((c) => c.id === conversationId);
-      if (match?.resourceId) {
-        setResourceId(match.resourceId);
-        const label = datasets.find(
-          (d) => d.resourceId === match.resourceId,
-        )?.title;
-        if (label) setActiveDatasetLabel(label);
-      }
-    }
-  }, [conversationId, conversations, datasets]);
-
-  useEffect(() => {
-    if (!resourceId && datasets.length > 0 && !conversationId) {
-      setResourceId(datasets[0].resourceId);
-      setActiveDatasetLabel(datasets[0].title);
-    }
-  }, [conversationId, datasets, resourceId]);
-
   const openSearch = useCallback(() => setSearchOpen(true), []);
   const closeSearch = useCallback(() => setSearchOpen(false), []);
 
   const startNewChat = useCallback(() => {
     reset();
-    setActiveDatasetLabel(
-      datasets.find((d) => d.resourceId === resourceId)?.title ?? null,
-    );
     router.push("/chat");
-  }, [datasets, reset, resourceId, router]);
+  }, [reset, router]);
 
   const selectConversation = useCallback(
     (id: string) => {
@@ -100,14 +94,9 @@ export function DataSenseApp({ conversationId }: DataSenseAppProps) {
     void signOut({ callbackUrl: "/" });
   }, []);
 
-  const handleResourceIdChange = useCallback(
-    (id: string) => {
-      setResourceId(id);
-      const label = datasets.find((d) => d.resourceId === id)?.title ?? null;
-      setActiveDatasetLabel(label);
-    },
-    [datasets],
-  );
+  const handleResourceIdChange = useCallback((id: string) => {
+    setPickedResourceId(id);
+  }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

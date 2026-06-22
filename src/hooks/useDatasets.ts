@@ -27,7 +27,9 @@ export function useDatasets() {
   }, []);
 
   useEffect(() => {
-    void refresh();
+    queueMicrotask(() => {
+      void refresh();
+    });
   }, [refresh]);
 
   return { datasets, loading, error, refresh };

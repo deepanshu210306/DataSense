@@ -40,7 +40,9 @@ export function useConversations() {
   }, []);
 
   useEffect(() => {
-    void refresh();
+    queueMicrotask(() => {
+      void refresh();
+    });
   }, [refresh]);
 
   return { conversations, loading, refresh };

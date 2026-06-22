@@ -1,23 +1,18 @@
 export type ResourceId = string;
 
-export type DatasetField = {
-  id?: string;
-  name?: string;
-  type?: string;
-};
-
 export type CachedDataset = {
-  _id: ResourceId;
+  resourceId: ResourceId;
   title: string;
   portalUrl: string;
-  fields: DatasetField[];
+  /** Column / field names from the resource. */
+  fields: string[];
   resolvedAt: Date;
-  addedByUserId: string;
+  addedByUserId?: string;
 };
 
 export type DatasetSummary = {
   resourceId: ResourceId;
   title: string;
   portalUrl: string;
-  fields: DatasetField[];
+  fields: string[];
 };

@@ -35,15 +35,11 @@ export function wrapStreamWithPersistence(
 export async function persistAssistantReply(input: {
   conversationId: string;
   content: string;
-  resolvedResourceId?: string;
-  resolvedDatasetLabel?: string;
-}) {
+}): Promise<void> {
   if (!input.content.trim()) return;
   await saveChatMessage({
     conversationId: input.conversationId,
     role: "assistant",
     content: input.content,
-    resolvedResourceId: input.resolvedResourceId,
-    resolvedDatasetLabel: input.resolvedDatasetLabel,
   });
 }

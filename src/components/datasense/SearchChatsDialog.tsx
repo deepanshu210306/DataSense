@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Search, X } from "lucide-react";
 import type { ConversationSummary } from "@/lib/conversations/types";
@@ -25,9 +25,10 @@ export function SearchChatsDialog({
   const isLight = theme === "light";
   const [q, setQ] = useState("");
 
-  useEffect(() => {
-    if (!open) setQ("");
-  }, [open]);
+  const handleClose = useCallback(() => {
+    setQ("");
+    onClose();
+  }, [onClose]);
 
   const filtered = conversations.filter((t) =>
     t.title.toLowerCase().includes(q.trim().toLowerCase()),
@@ -45,7 +46,7 @@ export function SearchChatsDialog({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            onClick={onClose}
+            onClick={handleClose}
           />
           <motion.div
             role="dialog"
@@ -86,7 +87,7 @@ export function SearchChatsDialog({
               />
               <button
                 type="button"
-                onClick={onClose}
+                onClick={handleClose}
                 className={cn(
                   "rounded-lg p-2 transition-colors",
                   isLight
@@ -119,7 +120,7 @@ export function SearchChatsDialog({
                         type="button"
                         onClick={() => {
                           onSelectConversation(t.id);
-                          onClose();
+                          handleClose();
                         }}
                         className={cn(
                           "flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition-colors",

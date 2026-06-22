@@ -6,5 +6,5 @@ type ChatThreadPageProps = {
 
 export default async function ChatThreadPage({ params }: ChatThreadPageProps) {
   const { id } = await params;
-  return <DataSenseApp conversationId={id} />;
+  return <DataSenseApp conversationId={id} key={id} />;
 }
