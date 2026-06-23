@@ -81,7 +81,11 @@ html[data-theme="light"] *::-webkit-scrollbar-thumb {
   font-size: 1rem;
   line-height: 1.75;
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 html[data-theme="dark"] .ds-md {
