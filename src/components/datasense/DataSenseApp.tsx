@@ -61,7 +61,11 @@ export function DataSenseApp({ conversationId }: DataSenseAppProps) {
     resourceId,
     onDatasetResolved: (id) => setPickedResourceId(id),
     onConversationCreated: (id) => {
-      router.replace(`/chat/${id}`);
+      // Swap the URL to the new conversation WITHOUT a router navigation.
+      // router.replace would remount this component (keyed by id) and refetch
+      // the conversation mid-stream, which races the live stream and can show
+      // the reply twice. history.replaceState keeps the streaming instance.
+      window.history.replaceState(null, "", `/chat/${id}`);
       void refreshConversations();
     },
     onMessageComplete: () => {
@@ -132,11 +136,6 @@ export function DataSenseApp({ conversationId }: DataSenseAppProps) {
       toast.success(CHAT.newChat);
     },
     onSearch: openSearch,
-    onSettings: () =>
-      toast.message("Dataset picker", {
-        description:
-          "Open your profile menu (bottom-left) to pick or add a data.gov.in dataset.",
-      }),
     conversations,
     activeConversationId: conversationId ?? null,
     onSelectConversation: selectConversation,
@@ -171,13 +170,6 @@ export function DataSenseApp({ conversationId }: DataSenseAppProps) {
           }}
           onSearch={() => {
             openSearch();
-            setMobileMenuOpen(false);
-          }}
-          onSettings={() => {
-            toast.message("Dataset picker", {
-              description:
-                "Open your profile menu to pick or add a data.gov.in dataset.",
-            });
             setMobileMenuOpen(false);
           }}
           mobile

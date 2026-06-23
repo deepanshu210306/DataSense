@@ -8,23 +8,14 @@ import {
   CircleHelp,
   LogOut,
   Moon,
-  Settings,
   Sun,
 } from "lucide-react";
-import type { DatasetSummary } from "@/lib/datasets/types";
 import { cn } from "@/lib/utils";
-import { DatasetPicker } from "./DatasetPicker";
 import type { SidebarBar } from "./sidebarStyles";
 
 type SidebarUserMenuProps = {
   collapsed: boolean;
   mobile?: boolean;
-  resourceId: string | null;
-  onResourceIdChange: (resourceId: string) => void;
-  datasets: DatasetSummary[];
-  datasetsLoading: boolean;
-  onDatasetsRefresh: () => void;
-  onSettings: () => void;
   onSignOut: () => void;
   onCloseMobile?: () => void;
   onToggleTheme: () => void;
@@ -95,12 +86,6 @@ function ProfileAvatar({
 export function SidebarUserMenu({
   collapsed,
   mobile,
-  resourceId,
-  onResourceIdChange,
-  datasets,
-  datasetsLoading,
-  onDatasetsRefresh,
-  onSettings,
   onSignOut,
   onCloseMobile,
   onToggleTheme,
@@ -109,7 +94,6 @@ export function SidebarUserMenu({
   user,
 }: SidebarUserMenuProps) {
   const [profileOpen, setProfileOpen] = useState(false);
-  const [datasetOpen, setDatasetOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
 
   const displayName = user?.name ?? "Signed in user";
@@ -117,7 +101,6 @@ export function SidebarUserMenu({
 
   const closeProfile = () => {
     setProfileOpen(false);
-    setDatasetOpen(false);
   };
 
   useEffect(() => {
@@ -141,10 +124,7 @@ export function SidebarUserMenu({
     >
       <button
         type="button"
-        onClick={() => {
-          setProfileOpen((o) => !o);
-          setDatasetOpen(false);
-        }}
+        onClick={() => setProfileOpen((o) => !o)}
         className={cn(
           "flex w-full items-center gap-3 rounded-full px-2 py-2 text-left transition-colors",
           bar.ghost,
@@ -204,23 +184,6 @@ export function SidebarUserMenu({
             <button
               type="button"
               onClick={() => {
-                onSettings();
-                closeProfile();
-                if (mobile) onCloseMobile?.();
-              }}
-              className={cn(
-                "flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm transition-colors",
-                isLight
-                  ? "text-neutral-800 hover:bg-black/[0.04]"
-                  : "text-white/90 hover:bg-white/[0.06]",
-              )}
-            >
-              <Settings className="h-4 w-4 shrink-0 opacity-70" />
-              Dataset preferences
-            </button>
-            <button
-              type="button"
-              onClick={() => {
                 onToggleTheme();
               }}
               className={cn(
@@ -271,25 +234,6 @@ export function SidebarUserMenu({
               <LogOut className="h-4 w-4 shrink-0 opacity-70" />
               Log out
             </button>
-
-            <div
-              className={cn(
-                "mx-2 my-1 h-px",
-                isLight ? "bg-black/10" : "bg-white/10",
-              )}
-            />
-
-            <DatasetPicker
-              resourceId={resourceId}
-              onResourceIdChange={onResourceIdChange}
-              datasets={datasets}
-              datasetsLoading={datasetsLoading}
-              onDatasetsRefresh={onDatasetsRefresh}
-              open={datasetOpen}
-              onOpenChange={setDatasetOpen}
-              isLight={isLight}
-              bar={bar}
-            />
           </motion.div>
         )}
       </AnimatePresence>

@@ -1,12 +1,10 @@
 import { z } from "zod";
+import { currentPasswordField, emailField } from "@/schemas/shared";
 
+/** Validates the credentials a returning user submits to sign in. */
 export const signInSchema = z.object({
-  email: z
-    .string()
-    .trim()
-    .toLowerCase()
-    .email({ message: "Enter a valid email address." }),
-  password: z.string().min(1, { message: "Password is required." }),
+  email: emailField,
+  password: currentPasswordField,
 });
 
 export type SignInInput = z.infer<typeof signInSchema>;

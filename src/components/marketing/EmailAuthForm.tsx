@@ -5,7 +5,7 @@ import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import { signInSchema } from "@/schemas/signInSchema";
-import { registerSchema } from "@/schemas/registerSchema";
+import { signUpSchema } from "@/schemas/signUpSchema";
 import { cn } from "@/lib/utils";
 
 type EmailAuthFormProps = {
@@ -26,7 +26,7 @@ export function EmailAuthForm({ isLight, onSuccess }: EmailAuthFormProps) {
     e.preventDefault();
     setError(null);
 
-    const schema = mode === "signUp" ? registerSchema : signInSchema;
+    const schema = mode === "signUp" ? signUpSchema : signInSchema;
     const parsed = schema.safeParse({ email, password });
     if (!parsed.success) {
       setError(parsed.error.issues[0]?.message ?? "Invalid input.");

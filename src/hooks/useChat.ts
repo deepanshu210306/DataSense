@@ -7,6 +7,7 @@ import {
   readErrorResponse,
   readTextStream,
 } from "@/lib/chat/stream-client";
+import { decodeHeaderValue } from "@/lib/http-headers";
 import type { ChatHistoryMessage } from "@/lib/types/chat";
 
 export type ChatRole = "user" | "assistant";
@@ -184,8 +185,9 @@ export function useChat(options: UseChatOptions) {
 
         const resolvedResourceId =
           response.headers.get("X-Resolved-Dataset-Id") ?? undefined;
-        const resolvedDatasetLabel =
-          response.headers.get("X-Resolved-Dataset-Label") ?? undefined;
+        const resolvedDatasetLabel = decodeHeaderValue(
+          response.headers.get("X-Resolved-Dataset-Label"),
+        );
 
         if (resolvedResourceId && resolvedDatasetLabel) {
           onDatasetResolved?.(resolvedResourceId, resolvedDatasetLabel);

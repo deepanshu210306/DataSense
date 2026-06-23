@@ -23,6 +23,11 @@ export const CHAT = {
   datasetSearchPlaceholder: "Search datasets by name…",
   datasetSearchEmpty: "No datasets match. Add a new one below.",
   datasetAlreadyExists: "Already in the catalog — select it above.",
+  datasetPickerLabel: "Pick your dataset",
+  datasetPickerEmpty: "No datasets yet. Add one from data.gov.in below.",
+  datasetPickerNone: "No dataset selected",
+  datasetPickerCount: (n: number) =>
+    n === 1 ? "1 dataset in catalog" : `${n} datasets in catalog`,
   analystRole: "Government data analyst",
   analystUsing: (dataset: string) => `Using ${dataset}`,
   verifyDisclaimer:

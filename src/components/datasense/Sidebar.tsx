@@ -1,11 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { PanelLeftClose, Search, SquarePen, X } from "lucide-react";
 import type { ConversationSummary } from "@/lib/conversations/types";
 import type { DatasetSummary } from "@/lib/datasets/types";
 import { useTheme } from "@/components/providers/ThemeProvider";
 import { cn } from "@/lib/utils";
 import { ConversationList } from "./sidebar/ConversationList";
+import { DatasetPicker } from "./sidebar/DatasetPicker";
 import { MobileSidebarDrawer } from "./sidebar/MobileSidebarDrawer";
 import { MobileSidebarFab } from "./sidebar/MobileSidebarFab";
 import { SidebarLogo } from "./sidebar/SidebarLogo";
@@ -24,7 +26,6 @@ type SidebarProps = {
   onToggleCollapse: () => void;
   onNewChat: () => void;
   onSearch: () => void;
-  onSettings: () => void;
   conversations: ConversationSummary[];
   activeConversationId: string | null;
   onSelectConversation: (id: string) => void;
@@ -48,7 +49,6 @@ export function Sidebar({
   onToggleCollapse,
   onNewChat,
   onSearch,
-  onSettings,
   conversations,
   activeConversationId,
   onSelectConversation,
@@ -60,6 +60,7 @@ export function Sidebar({
   const { theme, toggleTheme } = useTheme();
   const isLight = theme === "light";
   const bar = getSidebarBar(isLight);
+  const [datasetOpen, setDatasetOpen] = useState(false);
 
   const headerRow = (
     <div
@@ -145,6 +146,20 @@ export function Sidebar({
             <SquarePen className="h-[18px] w-[18px] shrink-0 stroke-[1.5]" />
             {(!collapsed || mobile) && <span>New chat</span>}
           </button>
+          <DatasetPicker
+            resourceId={resourceId}
+            onResourceIdChange={onResourceIdChange}
+            datasets={datasets}
+            datasetsLoading={datasetsLoading}
+            onDatasetsRefresh={onDatasetsRefresh}
+            open={datasetOpen}
+            onOpenChange={setDatasetOpen}
+            isLight={isLight}
+            bar={bar}
+            collapsed={collapsed}
+            mobile={mobile}
+            onCloseMobile={onCloseMobile}
+          />
           <button
             type="button"
             onClick={() => {
@@ -179,12 +194,6 @@ export function Sidebar({
         <SidebarUserMenu
           collapsed={collapsed}
           mobile={mobile}
-          resourceId={resourceId}
-          onResourceIdChange={onResourceIdChange}
-          datasets={datasets}
-          datasetsLoading={datasetsLoading}
-          onDatasetsRefresh={onDatasetsRefresh}
-          onSettings={onSettings}
           onSignOut={onSignOut}
           onCloseMobile={onCloseMobile}
           onToggleTheme={toggleTheme}

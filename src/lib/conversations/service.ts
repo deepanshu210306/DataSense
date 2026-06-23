@@ -1,5 +1,5 @@
 import { AppError } from "@/lib/errors";
-import { connectDB } from "@/lib/mongoose";
+import { dbConnect } from "@/lib/dbConnect";
 import { Conversation, type IConversation } from "@/models/Conversation";
 import { Message, type IMessage } from "@/models/Message";
 import { Dataset, type IDataset } from "@/models/Dataset";
@@ -51,7 +51,7 @@ function toRecord(doc: IConversation): ConversationRecord {
 export async function listConversations(
   userId: string,
 ): Promise<ConversationSummary[]> {
-  await connectDB();
+  await dbConnect();
   const rows = await Conversation.find({ userId })
     .sort({ updatedAt: -1 })
     .limit(50)
@@ -73,7 +73,7 @@ export async function getConversationForUser(
   conversationId: string,
   userId: string,
 ): Promise<ConversationRecord> {
-  await connectDB();
+  await dbConnect();
   const row = await Conversation.findOne({ _id: conversationId, userId })
     .lean<IConversation>()
     .exec();
@@ -116,7 +116,7 @@ export async function createConversation(
   resourceId: string,
   title = "New chat",
 ): Promise<ConversationRecord> {
-  await connectDB();
+  await dbConnect();
   const dataset = await Dataset.findOne({ resourceId: resourceId.toLowerCase() })
     .lean<IDataset>()
     .exec();
@@ -147,7 +147,7 @@ export async function ensureConversation(
 }
 
 export async function touchConversation(conversationId: string): Promise<void> {
-  await connectDB();
+  await dbConnect();
   await Conversation.updateOne(
     { _id: conversationId },
     { $set: { updatedAt: new Date() } },
@@ -159,7 +159,7 @@ export async function saveChatMessage(input: {
   role: "user" | "assistant";
   content: string;
 }): Promise<void> {
-  await connectDB();
+  await dbConnect();
   await Message.create({
     _id: newId(),
     conversationId: input.conversationId,
@@ -173,7 +173,7 @@ export async function getRecentHistory(
   conversationId: string,
   limit = 12,
 ): Promise<Array<{ role: "user" | "assistant"; content: string }>> {
-  await connectDB();
+  await dbConnect();
   const rows = await Message.find({ conversationId })
     .sort({ createdAt: -1 })
     .limit(limit)

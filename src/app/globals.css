@@ -143,20 +143,41 @@ html[data-theme="light"] .ds-md h3 {
 .ds-md h1,
 .ds-md h2,
 .ds-md h3 {
-  font-weight: 600;
-  margin: 0.75rem 0 0.35rem;
+  font-weight: 650;
+  line-height: 1.3;
+  letter-spacing: -0.015em;
+  margin: 1.5rem 0 0.6rem;
+}
+
+.ds-md > :first-child {
+  margin-top: 0;
 }
 
 .ds-md h1 {
-  font-size: 1.125rem;
+  font-size: 1.5rem;
 }
 
 .ds-md h2 {
-  font-size: 1.05rem;
+  font-size: 1.2rem;
 }
 
 .ds-md h3 {
-  font-size: 1rem;
+  font-size: 1.05rem;
+}
+
+/* Section dividers (---) between parts of an answer, like ChatGPT */
+.ds-md hr {
+  border: 0;
+  height: 1px;
+  margin: 1.25rem 0;
+}
+
+html[data-theme="dark"] .ds-md hr {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+html[data-theme="light"] .ds-md hr {
+  background: rgba(0, 0, 0, 0.1);
 }
 
 .ds-md blockquote {

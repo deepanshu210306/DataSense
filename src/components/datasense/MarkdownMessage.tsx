@@ -9,6 +9,11 @@ type MarkdownMessageProps = {
   className?: string;
 };
 
+// Remove a trailing horizontal rule so dividers only sit between sections.
+function stripTrailingDivider(text: string): string {
+  return text.replace(/\n+\s*(?:-{3,}|\*{3,}|_{3,})\s*$/, "");
+}
+
 export function MarkdownMessage({ content, className }: MarkdownMessageProps) {
   return (
     <div className={cn("ds-md", className)}>
@@ -38,7 +43,7 @@ export function MarkdownMessage({ content, className }: MarkdownMessageProps) {
           },
         }}
       >
-        {content}
+        {stripTrailingDivider(content)}
       </ReactMarkdown>
     </div>
   );

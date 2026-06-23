@@ -11,6 +11,7 @@ import {
 } from "@/lib/conversations/stream";
 import { jsonError } from "@/lib/api-response";
 import { isAppError, toErrorMessage } from "@/lib/errors";
+import { encodeHeaderValue } from "@/lib/http-headers";
 import { chatRequestSchema } from "@/schemas/chatRequestSchema";
 
 export const runtime = "nodejs";
@@ -71,7 +72,7 @@ export async function POST(req: Request) {
         "X-Content-Type-Options": "nosniff",
         "X-Conversation-Id": conversation.id,
         "X-Resolved-Dataset-Id": resolvedResourceId,
-        "X-Resolved-Dataset-Label": resolvedDatasetLabel,
+        "X-Resolved-Dataset-Label": encodeHeaderValue(resolvedDatasetLabel),
         "X-Dataset-Auto-Detected": "false",
       },
     });

@@ -1,21 +1,21 @@
 import { jsonError } from "@/lib/api-response";
 import { createPasswordUser, findUserByEmail } from "@/lib/auth/users";
 import { isAppError, toErrorMessage } from "@/lib/errors";
-import { registerSchema } from "@/schemas/registerSchema";
+import { signUpSchema } from "@/schemas/signUpSchema";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   try {
-    const parsed = registerSchema.safeParse(await req.json());
+    const parsed = signUpSchema.safeParse(await req.json());
     if (!parsed.success) {
       const message =
         parsed.error.issues[0]?.message ?? "Invalid registration data.";
       return jsonError(message, 400, "VALIDATION");
     }
 
-    const { email, password } = parsed.data;
+    const { name, email, password } = parsed.data;
     const existing = await findUserByEmail(email);
     if (existing) {
       return jsonError(
@@ -27,7 +27,7 @@ export async function POST(req: Request) {
       );
     }
 
-    await createPasswordUser(email, password);
+    await createPasswordUser(email, password, name);
     return Response.json({ ok: true }, { status: 201 });
   } catch (error) {
     if (isAppError(error)) {

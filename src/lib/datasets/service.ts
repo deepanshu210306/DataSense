@@ -1,4 +1,4 @@
-import { connectDB } from "@/lib/mongoose";
+import { dbConnect } from "@/lib/dbConnect";
 import { Dataset, type IDataset } from "@/models/Dataset";
 import type { CachedDataset, DatasetSummary } from "./types";
 
@@ -23,7 +23,7 @@ function toCached(doc: IDataset): CachedDataset {
 }
 
 export async function listDatasets(): Promise<DatasetSummary[]> {
-  await connectDB();
+  await dbConnect();
   const rows = await Dataset.find({}).sort({ title: 1 }).lean<IDataset[]>().exec();
   return rows.map(toSummary);
 }
@@ -31,7 +31,7 @@ export async function listDatasets(): Promise<DatasetSummary[]> {
 export async function getDatasetByResourceId(
   resourceId: string,
 ): Promise<CachedDataset | null> {
-  await connectDB();
+  await dbConnect();
   const row = await Dataset.findOne({ resourceId: resourceId.toLowerCase() })
     .lean<IDataset>()
     .exec();
@@ -41,7 +41,7 @@ export async function getDatasetByResourceId(
 export async function upsertDataset(
   input: Omit<CachedDataset, "resolvedAt"> & { resolvedAt?: Date },
 ): Promise<CachedDataset> {
-  await connectDB();
+  await dbConnect();
   const resolvedAt = input.resolvedAt ?? new Date();
   const row = await Dataset.findOneAndUpdate(
     { resourceId: input.resourceId.toLowerCase() },
