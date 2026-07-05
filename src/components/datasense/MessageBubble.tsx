@@ -31,7 +31,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
       >
         <div
           className={cn(
-            "max-w-[min(88%,48rem)] rounded-[1.25rem] px-4 py-2.5 text-[0.9375rem] leading-relaxed",
+            "max-w-[min(92%,48rem)] rounded-[1.25rem] px-3.5 py-2.5 text-[0.9375rem] leading-relaxed sm:max-w-[min(88%,48rem)] sm:px-4",
             isLight
               ? "bg-neutral-100 text-neutral-900"
               : "bg-[#2f2f2f] text-neutral-100",
@@ -58,8 +58,8 @@ export function MessageBubble({ message }: MessageBubbleProps) {
               ? "bg-amber-100 text-amber-700"
               : "bg-amber-500/15 text-amber-400"
             : isLight
-              ? "bg-neutral-100 text-neutral-600"
-              : "bg-white/[0.08] text-neutral-300",
+              ? "bg-indigo-50 text-indigo-600 ring-1 ring-indigo-100"
+              : "bg-indigo-500/12 text-indigo-300 ring-1 ring-indigo-500/20",
         )}
         aria-hidden
       >

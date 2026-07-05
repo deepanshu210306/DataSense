@@ -73,8 +73,8 @@ function ProfileAvatar({
         "flex shrink-0 items-center justify-center rounded-full text-xs font-medium ring-1",
         outer,
         isLight
-          ? "bg-blue-600/10 text-blue-700 ring-blue-600/15"
-          : "bg-blue-500/15 text-blue-300 ring-blue-400/20",
+          ? "bg-indigo-600/10 text-indigo-700 ring-indigo-600/15"
+          : "bg-indigo-500/15 text-indigo-300 ring-indigo-400/20",
         className,
       )}
     >

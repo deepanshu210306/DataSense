@@ -34,18 +34,18 @@ export function ChatInput({
   const canSend = !disabled && value.trim().length > 0;
 
   return (
-    <div className="pointer-events-none shrink-0 px-4 pb-4 pt-2 sm:px-6 sm:pb-6">
+    <div className="pointer-events-none shrink-0 px-3 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2 sm:px-6 sm:pb-6">
       <div className="pointer-events-auto mx-auto w-full max-w-4xl">
         <div
           className={cn(
-            "relative flex flex-col rounded-[1.75rem] border shadow-lg transition-shadow duration-200",
+            "relative flex flex-col rounded-[1.75rem] border shadow-lg transition-all duration-200",
             isLight
               ? "border-black/[0.08] bg-white shadow-black/[0.04]"
-              : "border-white/[0.08] bg-[#2f2f2f] shadow-black/40",
+              : "border-white/[0.08] bg-[#16161f] shadow-black/40",
             focused &&
               (isLight
-                ? "shadow-black/[0.08]"
-                : "border-white/[0.12] shadow-black/60"),
+                ? "border-indigo-300 shadow-indigo-500/10"
+                : "border-indigo-500/40 shadow-indigo-500/10"),
           )}
         >
           <textarea
@@ -97,9 +97,7 @@ export function ChatInput({
               className={cn(
                 "flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors",
                 canSend
-                  ? isLight
-                    ? "bg-neutral-900 text-white hover:bg-neutral-800"
-                    : "bg-white text-black hover:bg-neutral-200"
+                  ? "bg-indigo-600 text-white shadow-sm shadow-indigo-600/30 hover:bg-indigo-500"
                   : isLight
                     ? "cursor-not-allowed bg-neutral-100 text-neutral-400"
                     : "cursor-not-allowed bg-white/[0.08] text-neutral-600",
@@ -113,7 +111,7 @@ export function ChatInput({
 
         <p
           className={cn(
-            "mt-2.5 text-center text-[11px] leading-relaxed",
+            "mt-2.5 hidden text-center text-[11px] leading-relaxed sm:block",
             isLight ? "text-neutral-400" : "text-neutral-600",
           )}
         >

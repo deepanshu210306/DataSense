@@ -1,15 +1,17 @@
 export function getSidebarBar(isLight: boolean) {
   return {
-    bg: isLight ? "bg-[#f0f2f6]" : "bg-[#0a0a0c]",
-    border: isLight ? "border-neutral-200/90" : "border-white/[0.07]",
-    text: isLight ? "text-neutral-900" : "text-neutral-100",
+    bg: isLight ? "bg-[#f1f2f7]" : "bg-[#0c0c12]",
+    border: isLight ? "border-neutral-200/80" : "border-white/[0.06]",
+    text: isLight ? "text-neutral-800" : "text-neutral-200",
     muted: isLight ? "text-neutral-500" : "text-neutral-500",
-    hover: isLight ? "hover:bg-black/[0.05]" : "hover:bg-white/[0.06]",
+    hover: isLight ? "hover:bg-black/[0.04]" : "hover:bg-white/[0.05]",
     pill: isLight
-      ? "bg-black/[0.05] hover:bg-black/[0.08]"
-      : "bg-white/[0.07] hover:bg-white/[0.1]",
-    ghost: isLight ? "hover:bg-black/[0.05]" : "hover:bg-white/[0.06]",
-    active: isLight ? "bg-black/[0.07]" : "bg-white/[0.09]",
+      ? "bg-indigo-600 text-white shadow-sm shadow-indigo-600/25 hover:bg-indigo-500"
+      : "bg-indigo-500 text-white shadow-sm shadow-indigo-500/25 hover:bg-indigo-400",
+    ghost: isLight ? "hover:bg-black/[0.04]" : "hover:bg-white/[0.05]",
+    active: isLight
+      ? "bg-indigo-500/10 text-indigo-700"
+      : "bg-indigo-500/15 text-indigo-200",
   };
 }
 

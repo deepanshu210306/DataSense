@@ -126,7 +126,12 @@ export function Sidebar({
     <>
       {headerRow}
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-visible px-2">
+      <div
+        className={cn(
+          "flex min-h-0 flex-1 flex-col px-2",
+          mobile ? "overflow-hidden" : "overflow-visible",
+        )}
+      >
         <div
           className={cn("space-y-1", collapsed && !mobile ? "mt-2" : "mt-1")}
         >
@@ -137,13 +142,12 @@ export function Sidebar({
               if (mobile) onCloseMobile?.();
             }}
             className={cn(
-              "flex w-full items-center gap-3 rounded-full py-2.5 text-sm font-normal transition-colors",
+              "flex w-full items-center gap-2.5 rounded-full py-2.5 text-sm font-medium transition-colors",
               bar.pill,
-              bar.text,
-              collapsed && !mobile ? "justify-center px-0" : "px-3",
+              collapsed && !mobile ? "justify-center px-0" : "px-3.5",
             )}
           >
-            <SquarePen className="h-[18px] w-[18px] shrink-0 stroke-[1.5]" />
+            <SquarePen className="h-[18px] w-[18px] shrink-0 stroke-[1.75]" />
             {(!collapsed || mobile) && <span>New chat</span>}
           </button>
           <DatasetPicker
@@ -212,13 +216,13 @@ export function Sidebar({
   );
 
   if (mobile) {
-    return <div className={shell}>{inner}</div>;
+    return <div className={cn(shell, "h-full overflow-hidden")}>{inner}</div>;
   }
 
   return (
     <aside
       className={cn(
-        "relative hidden h-full min-h-0 shrink-0 flex-col overflow-visible transition-[width] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] lg:flex",
+        "relative flex h-full min-h-0 shrink-0 flex-col overflow-hidden transition-[width] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
         shell,
         collapsed ? "w-20" : "w-[260px]",
       )}

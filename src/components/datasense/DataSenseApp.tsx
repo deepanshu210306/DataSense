@@ -10,9 +10,9 @@ import { useConversations } from "@/hooks/useConversations";
 import { useDatasets } from "@/hooks/useDatasets";
 import { BackgroundBlobs } from "./BackgroundBlobs";
 import { ChatInput } from "./ChatInput";
+import { MobileChatHeader } from "./MobileChatHeader";
 import {
   MobileSidebarDrawer,
-  MobileSidebarFab,
   Sidebar,
 } from "./Sidebar";
 import { MessageList } from "./MessageList";
@@ -89,6 +89,7 @@ export function DataSenseApp({ conversationId }: DataSenseAppProps) {
 
   const selectConversation = useCallback(
     (id: string) => {
+      setMobileMenuOpen(false);
       router.push(`/chat/${id}`);
     },
     [router],
@@ -153,7 +154,10 @@ export function DataSenseApp({ conversationId }: DataSenseAppProps) {
     >
       <BackgroundBlobs />
 
-      <Sidebar {...sidebarProps} />
+      {/* Desktop sidebar only — hidden on mobile to avoid a second sidebar showing */}
+      <div className="hidden h-full shrink-0 lg:flex">
+        <Sidebar {...sidebarProps} />
+      </div>
 
       <MobileSidebarDrawer
         open={mobileMenuOpen}
@@ -178,6 +182,10 @@ export function DataSenseApp({ conversationId }: DataSenseAppProps) {
       </MobileSidebarDrawer>
 
       <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
+        <MobileChatHeader
+          onOpenMenu={() => setMobileMenuOpen(true)}
+          datasetLabel={activeDatasetLabel}
+        />
         <main className="relative flex min-h-0 min-w-0 flex-1 flex-col bg-transparent">
           {isLoading ? (
             <div className="flex flex-1 items-center justify-center text-sm text-neutral-500">
@@ -196,11 +204,6 @@ export function DataSenseApp({ conversationId }: DataSenseAppProps) {
           />
         </main>
       </div>
-
-      <MobileSidebarFab
-        onOpen={() => setMobileMenuOpen(true)}
-        theme={theme}
-      />
 
       <SearchChatsDialog
         open={searchOpen}

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 
 export function MobileSidebarDrawer({
@@ -11,6 +12,16 @@ export function MobileSidebarDrawer({
   onClose: () => void;
   children: React.ReactNode;
 }) {
+  // Prevent background scroll while the drawer is open.
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open]);
+
   return (
     <AnimatePresence>
       {open && (
@@ -30,9 +41,14 @@ export function MobileSidebarDrawer({
             animate={{ x: 0 }}
             exit={{ x: "-100%" }}
             transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
-            className="fixed inset-y-0 left-0 z-50 w-[min(88vw,280px)] overflow-hidden shadow-2xl lg:hidden"
+            className="fixed inset-y-0 left-0 z-50 flex w-[min(85vw,300px)] flex-col overflow-hidden shadow-2xl lg:hidden"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Navigation menu"
           >
-            <div className="flex h-full min-h-0 flex-col">{children}</div>
+            <div className="flex h-full min-h-0 flex-col pt-[env(safe-area-inset-top)]">
+              {children}
+            </div>
           </motion.div>
         </>
       )}

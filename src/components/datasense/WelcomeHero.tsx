@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Sparkles } from "lucide-react";
+import { ArrowUpRight, Sparkles } from "lucide-react";
 import { CHAT } from "@/lib/copy";
 import { useTheme } from "@/components/providers/ThemeProvider";
 import { cn } from "@/lib/utils";
@@ -26,15 +26,17 @@ export function WelcomeHero({ onTryExample }: WelcomeHeroProps) {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-        className="mx-auto flex w-full max-w-4xl flex-col items-center text-center"
+        className="mx-auto flex w-full max-w-2xl flex-col items-center text-center"
       >
         <motion.div
           initial={{ scale: 0.96, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.05, duration: 0.3 }}
           className={cn(
-            "mb-6 flex h-11 w-11 items-center justify-center rounded-full",
-            isLight ? "bg-neutral-100 text-neutral-600" : "bg-white/[0.08] text-neutral-300",
+            "mb-6 flex h-12 w-12 items-center justify-center rounded-2xl",
+            isLight
+              ? "bg-indigo-50 text-indigo-600 ring-1 ring-indigo-100"
+              : "bg-indigo-500/12 text-indigo-300 ring-1 ring-indigo-500/20",
           )}
         >
           <Sparkles className="h-5 w-5" />
@@ -42,7 +44,7 @@ export function WelcomeHero({ onTryExample }: WelcomeHeroProps) {
 
         <h1
           className={cn(
-            "text-balance text-2xl font-semibold tracking-tight sm:text-[1.75rem]",
+            "text-balance text-2xl font-semibold tracking-tight sm:text-3xl",
             isLight ? "text-neutral-950" : "text-white",
           )}
         >
@@ -50,30 +52,36 @@ export function WelcomeHero({ onTryExample }: WelcomeHeroProps) {
         </h1>
         <p
           className={cn(
-            "mt-2 max-w-md text-pretty text-sm leading-relaxed",
+            "mt-3 max-w-md text-pretty text-sm leading-relaxed",
             isLight ? "text-neutral-500" : "text-neutral-400",
           )}
         >
           {CHAT.emptyDescription}
         </p>
 
-        <div className="mt-8 flex w-full max-w-2xl flex-col gap-2">
+        <div className="mt-8 grid w-full gap-2.5 sm:grid-cols-1">
           {EXAMPLE_PROMPTS.map((prompt, i) => (
             <motion.button
               key={prompt}
               type="button"
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.08 + i * 0.04, duration: 0.28 }}
+              transition={{ delay: 0.1 + i * 0.05, duration: 0.28 }}
               onClick={() => onTryExample?.(prompt)}
               className={cn(
-                "rounded-2xl px-4 py-3 text-left text-sm leading-relaxed transition",
+                "group flex items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left text-sm leading-relaxed transition-colors",
                 isLight
-                  ? "bg-white text-neutral-600 shadow-sm shadow-black/[0.04] hover:bg-neutral-50"
-                  : "bg-[#2f2f2f] text-neutral-300 hover:bg-[#383838]",
+                  ? "border-black/[0.07] bg-white text-neutral-700 hover:border-indigo-300 hover:bg-indigo-50/50"
+                  : "border-white/[0.07] bg-white/[0.02] text-neutral-300 hover:border-indigo-500/25 hover:bg-white/[0.04]",
               )}
             >
-              {prompt}
+              <span>{prompt}</span>
+              <ArrowUpRight
+                className={cn(
+                  "h-4 w-4 shrink-0 opacity-0 transition-opacity group-hover:opacity-100",
+                  isLight ? "text-indigo-500" : "text-indigo-400",
+                )}
+              />
             </motion.button>
           ))}
         </div>

@@ -22,7 +22,7 @@ export function MessageList({ messages }: MessageListProps) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-      <div className="mx-auto flex w-full max-w-4xl flex-col px-4 py-6 sm:px-6 sm:py-8">
+      <div className="mx-auto flex w-full max-w-4xl flex-col px-3 py-4 sm:px-6 sm:py-8">
         <AnimatePresence initial={false}>
           {messages.map((m, i) => {
             // Start a fresh visual block (with a divider) at each new user turn.

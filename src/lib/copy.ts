@@ -2,40 +2,45 @@
 export const APP_NAME = "DataSense";
 
 export const APP_TAGLINE =
-  "AI analyst for Indian government open data on data.gov.in";
+  "Your AI analyst for India's open government data";
 
 export const CHAT = {
-  emptyTitle: "Ask your first question",
+  emptyTitle: "What would you like to explore?",
   emptyDescription:
-    "Select a dataset from the sidebar, then ask in plain language. Answers use live rows from data.gov.in.",
+    "Pick a dataset, then ask in plain language. Every answer is grounded in live rows from data.gov.in.",
   inputPlaceholder: "Ask anything about this dataset…",
   inputHint:
-    "Answers use live rows from data.gov.in. Chats sync to your account.",
-  datasetNone: "Select a dataset in the sidebar before sending",
+    "Grounded in live data.gov.in rows. Your chats sync automatically.",
+  datasetNone: "Choose a dataset to get started",
   datasetSelected: (label: string) => `Dataset: ${label}`,
-  datasetSelectedShort: "Dataset selected",
+  datasetSelectedShort: "Dataset ready",
   loading: "Loading your conversation…",
-  newChat: "New chat ready",
-  recentsEmpty: "No saved chats yet — ask a question to start.",
-  recentsLabel: "Recent chats",
-  searchPlaceholder: "Search your saved chats…",
+  newChat: "Started a new chat",
+  recentsEmpty: "Your chats will appear here once you start one.",
+  recentsLabel: "Recent",
+  searchPlaceholder: "Search your chats…",
   searchEmpty: "No chats match that search.",
   datasetSearchPlaceholder: "Search datasets by name…",
   datasetSearchEmpty: "No datasets match. Add a new one below.",
   datasetAlreadyExists: "Already in the catalog — select it above.",
-  datasetPickerLabel: "Pick your dataset",
+  datasetPickerLabel: "Dataset",
   datasetPickerEmpty: "No datasets yet. Add one from data.gov.in below.",
-  datasetPickerNone: "No dataset selected",
+  datasetPickerNone: "Choose a dataset",
   datasetPickerCount: (n: number) =>
-    n === 1 ? "1 dataset in catalog" : `${n} datasets in catalog`,
+    n === 1 ? "1 dataset available" : `${n} datasets available`,
   analystRole: "Government data analyst",
-  analystUsing: (dataset: string) => `Using ${dataset}`,
+  analystUsing: (dataset: string) => `Analyzing ${dataset}`,
   verifyDisclaimer:
-    "Verify important figures against the official source on data.gov.in.",
+    "Always verify key figures against the official source on data.gov.in.",
 } as const;
 
 export const HOME = {
-  heroTitle: "Chat with India's open government data",
+  badge: "Grounded in live data.gov.in datasets",
+  heroTitle: "Understand India's public data in plain language",
   heroDescription:
-    "DataSense connects to live datasets on data.gov.in. Sign in, pick a dataset, ask in plain language, and revisit saved conversations anytime.",
+    "DataSense turns any dataset on data.gov.in into a conversation. Ask questions, get grounded answers with real numbers, and pick up right where you left off.",
+  quote:
+    "Data is only powerful when everyone can actually read it.",
+  quoteAuthor: "The DataSense idea",
+  featuresTitle: "Everything you need to make sense of open data",
 } as const;

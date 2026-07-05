@@ -204,8 +204,8 @@ export function DatasetPicker({
             : "border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06]",
           open &&
             (isLight
-              ? "border-blue-500/30 bg-blue-50/50"
-              : "border-blue-500/25 bg-blue-500/10"),
+              ? "border-indigo-500/30 bg-indigo-50/50"
+              : "border-indigo-500/25 bg-indigo-500/10"),
           collapsed && !mobile ? "justify-center border-transparent px-0" : "px-3",
         )}
         aria-expanded={open}
@@ -218,13 +218,13 @@ export function DatasetPicker({
         <span
           className={cn(
             "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
-            isLight ? "bg-blue-600/10" : "bg-blue-500/15",
+            isLight ? "bg-indigo-600/10" : "bg-indigo-500/15",
           )}
         >
           <BarChart3
             className={cn(
               "h-4 w-4 stroke-[1.5]",
-              isLight ? "text-blue-700" : "text-blue-400",
+              isLight ? "text-indigo-700" : "text-indigo-400",
             )}
           />
         </span>
@@ -289,7 +289,7 @@ export function DatasetPicker({
                   placeholder={CHAT.datasetSearchPlaceholder}
                   disabled={datasetsLoading}
                   className={cn(
-                    "w-full rounded-lg border py-2 pl-8 pr-2 text-xs outline-none focus:ring-2 focus:ring-blue-500/30 disabled:opacity-60",
+                    "w-full rounded-lg border py-2 pl-8 pr-2 text-xs outline-none focus:ring-2 focus:ring-indigo-500/30 disabled:opacity-60",
                     isLight
                       ? "border-black/10 bg-white text-neutral-900 placeholder:text-neutral-400"
                       : "border-white/10 bg-black/30 text-neutral-100 placeholder:text-neutral-500",
@@ -341,8 +341,8 @@ export function DatasetPicker({
                           "flex w-full items-start gap-2 rounded-lg px-2.5 py-2 text-left text-xs transition-colors",
                           isActive
                             ? isLight
-                              ? "bg-blue-50 text-blue-900 ring-1 ring-blue-500/20"
-                              : "bg-blue-500/15 text-blue-100 ring-1 ring-blue-400/25"
+                              ? "bg-indigo-50 text-indigo-900 ring-1 ring-indigo-500/20"
+                              : "bg-indigo-500/15 text-indigo-100 ring-1 ring-indigo-400/25"
                             : isLight
                               ? "text-neutral-700 hover:bg-black/[0.04]"
                               : "text-white/80 hover:bg-white/[0.06]",
@@ -357,7 +357,7 @@ export function DatasetPicker({
                           <Check
                             className={cn(
                               "mt-0.5 h-3.5 w-3.5 shrink-0",
-                              isLight ? "text-blue-600" : "text-blue-400",
+                              isLight ? "text-indigo-600" : "text-indigo-400",
                             )}
                           />
                         )}
@@ -382,8 +382,8 @@ export function DatasetPicker({
                     className={cn(
                       "flex w-full items-center justify-center gap-2 rounded-lg border border-dashed px-3 py-2 text-xs font-medium transition-colors",
                       isLight
-                        ? "border-black/15 text-blue-700 hover:bg-black/[0.03]"
-                        : "border-white/15 text-blue-400 hover:bg-white/[0.04]",
+                        ? "border-black/15 text-indigo-700 hover:bg-black/[0.03]"
+                        : "border-white/15 text-indigo-400 hover:bg-white/[0.04]",
                     )}
                   >
                     <Plus className="h-3.5 w-3.5" />
@@ -397,7 +397,7 @@ export function DatasetPicker({
                       onChange={(e) => setAddInput(e.target.value)}
                       placeholder="https://data.gov.in/resource/… or UUID"
                       className={cn(
-                        "w-full rounded-lg border px-2.5 py-2 text-xs outline-none focus:ring-2 focus:ring-blue-500/30",
+                        "w-full rounded-lg border px-2.5 py-2 text-xs outline-none focus:ring-2 focus:ring-indigo-500/30",
                         isLight
                           ? "border-black/10 bg-white text-neutral-900"
                           : "border-white/10 bg-black/30 text-neutral-100",
@@ -456,7 +456,7 @@ export function DatasetPicker({
                           Boolean(existingFromAddInput)
                         }
                         onClick={() => void resolveDataset()}
-                        className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-blue-600 py-1.5 text-xs font-medium text-white disabled:opacity-50"
+                        className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-indigo-600 py-1.5 text-xs font-medium text-white disabled:opacity-50"
                       >
                         {resolving && (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />

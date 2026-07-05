@@ -3,18 +3,19 @@
 @theme inline {
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
-  --color-ds-bg: #09090c;
-  --color-ds-surface: #0c0c12;
-  --color-ds-elevated: #12121a;
-  --color-ds-border: rgba(255, 255, 255, 0.06);
-  --color-ds-accent: #2563eb;
+  --color-ds-bg: #0a0a0f;
+  --color-ds-surface: #101018;
+  --color-ds-elevated: #16161f;
+  --color-ds-border: rgba(255, 255, 255, 0.07);
+  --color-ds-accent: #6366f1;
+  --color-ds-accent-strong: #4f46e5;
   --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.45);
-  --shadow-glow: 0 0 40px rgba(37, 99, 235, 0.22);
+  --shadow-glow: 0 0 48px rgba(99, 102, 241, 0.28);
 }
 
 html[data-theme="dark"] {
   color-scheme: dark;
-  --ds-glass: rgba(10, 10, 12, 0.78);
+  --ds-glass: rgba(12, 12, 18, 0.8);
   --ds-glass-border: rgba(255, 255, 255, 0.08);
 }
 
@@ -25,27 +26,29 @@ html[data-theme="light"] {
 }
 
 html[data-theme="dark"] body {
-  background-color: #0d0d0d;
-  color: #ececec;
+  background-color: #0a0a0f;
+  color: #ececf1;
 }
 
 html[data-theme="light"] body {
-  background-color: #f4f4f5;
-  color: #171717;
+  background-color: #f6f7f9;
+  color: #16161d;
 }
 
 body {
   font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
   transition: background-color 0.25s ease, color 0.25s ease;
 }
 
 ::selection {
-  background: rgba(37, 99, 235, 0.35);
+  background: rgba(99, 102, 241, 0.4);
   color: #fafafa;
 }
 
 html[data-theme="light"] ::selection {
-  background: rgba(37, 99, 235, 0.25);
+  background: rgba(99, 102, 241, 0.22);
   color: #0a0a0a;
 }
 
@@ -127,9 +130,22 @@ html[data-theme="light"] .ds-md strong {
 }
 
 .ds-md a {
-  color: #2563eb;
+  color: #818cf8;
   text-decoration: underline;
   text-underline-offset: 2px;
+  transition: color 0.15s ease;
+}
+
+.ds-md a:hover {
+  color: #a5b4fc;
+}
+
+html[data-theme="light"] .ds-md a {
+  color: #4f46e5;
+}
+
+html[data-theme="light"] .ds-md a:hover {
+  color: #4338ca;
 }
 
 html[data-theme="dark"] .ds-md h1,
@@ -185,7 +201,7 @@ html[data-theme="light"] .ds-md hr {
 }
 
 .ds-md blockquote {
-  border-left: 3px solid rgba(37, 99, 235, 0.55);
+  border-left: 3px solid rgba(99, 102, 241, 0.6);
   margin: 0.5rem 0;
   padding-left: 0.75rem;
 }

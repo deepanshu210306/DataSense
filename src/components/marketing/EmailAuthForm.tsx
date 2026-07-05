@@ -73,16 +73,44 @@ export function EmailAuthForm({ isLight, onSuccess }: EmailAuthFormProps) {
     }
   }
 
+  const inputClass = cn(
+    "w-full rounded-xl border px-3.5 py-2.5 text-sm outline-none transition focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/20",
+    isLight
+      ? "border-black/[0.1] bg-white text-neutral-900 placeholder:text-neutral-400"
+      : "border-white/[0.1] bg-white/[0.03] text-neutral-100 placeholder:text-neutral-500",
+  );
+
   return (
     <div
       className={cn(
-        "w-full max-w-sm rounded-2xl border p-5 shadow-sm",
+        "w-full max-w-sm rounded-2xl border p-6 text-left shadow-xl",
         isLight
-          ? "border-black/[0.08] bg-white/90"
-          : "border-white/[0.08] bg-white/[0.04]",
+          ? "border-black/[0.07] bg-white shadow-black/[0.04]"
+          : "border-white/[0.08] bg-white/[0.025] shadow-black/40",
       )}
     >
-      <div className="mb-4 flex rounded-full bg-black/[0.04] p-1 dark:bg-white/[0.06]">
+      <div className="mb-1.5 text-center">
+        <h2 className="text-lg font-semibold tracking-tight">
+          {mode === "signUp" ? "Create your account" : "Welcome back"}
+        </h2>
+        <p
+          className={cn(
+            "mt-1 text-xs",
+            isLight ? "text-neutral-500" : "text-neutral-500",
+          )}
+        >
+          {mode === "signUp"
+            ? "Start exploring open data in seconds."
+            : "Sign in to continue your conversations."}
+        </p>
+      </div>
+
+      <div
+        className={cn(
+          "mb-4 mt-4 flex rounded-full p-1",
+          isLight ? "bg-black/[0.04]" : "bg-white/[0.05]",
+        )}
+      >
         <button
           type="button"
           onClick={() => {
@@ -91,12 +119,12 @@ export function EmailAuthForm({ isLight, onSuccess }: EmailAuthFormProps) {
             setError(null);
           }}
           className={cn(
-            "flex-1 rounded-full py-1.5 text-sm transition",
+            "flex-1 rounded-full py-1.5 text-sm font-medium transition",
             mode === "signIn"
-              ? "bg-blue-600 font-medium text-white"
+              ? "bg-indigo-600 text-white shadow-sm shadow-indigo-600/25"
               : isLight
-                ? "text-neutral-600"
-                : "text-neutral-400",
+                ? "text-neutral-600 hover:text-neutral-900"
+                : "text-neutral-400 hover:text-neutral-200",
           )}
         >
           Sign in
@@ -109,12 +137,12 @@ export function EmailAuthForm({ isLight, onSuccess }: EmailAuthFormProps) {
             setError(null);
           }}
           className={cn(
-            "flex-1 rounded-full py-1.5 text-sm transition",
+            "flex-1 rounded-full py-1.5 text-sm font-medium transition",
             mode === "signUp"
-              ? "bg-blue-600 font-medium text-white"
+              ? "bg-indigo-600 text-white shadow-sm shadow-indigo-600/25"
               : isLight
-                ? "text-neutral-600"
-                : "text-neutral-400",
+                ? "text-neutral-600 hover:text-neutral-900"
+                : "text-neutral-400 hover:text-neutral-200",
           )}
         >
           Sign up
@@ -132,13 +160,8 @@ export function EmailAuthForm({ isLight, onSuccess }: EmailAuthFormProps) {
             autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="Email"
-            className={cn(
-              "w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20",
-              isLight
-                ? "border-black/[0.1] bg-white text-neutral-900"
-                : "border-white/[0.1] bg-black/20 text-neutral-100",
-            )}
+            placeholder="you@example.com"
+            className={inputClass}
           />
         </div>
         <div className="relative">
@@ -153,13 +176,8 @@ export function EmailAuthForm({ isLight, onSuccess }: EmailAuthFormProps) {
             }
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder={mode === "signUp" ? "Password (min 8 chars)" : "Password"}
-            className={cn(
-              "w-full rounded-xl border py-2.5 pl-3 pr-10 text-sm outline-none transition focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20",
-              isLight
-                ? "border-black/[0.1] bg-white text-neutral-900"
-                : "border-white/[0.1] bg-black/20 text-neutral-100",
-            )}
+            placeholder={mode === "signUp" ? "Create a password (min 8)" : "Password"}
+            className={cn(inputClass, "pr-10")}
           />
           <button
             type="button"
@@ -181,19 +199,28 @@ export function EmailAuthForm({ isLight, onSuccess }: EmailAuthFormProps) {
         </div>
 
         {error && (
-          <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+          <p
+            className={cn(
+              "rounded-lg px-3 py-2 text-sm",
+              isLight
+                ? "bg-red-50 text-red-600"
+                : "bg-red-500/10 text-red-400",
+            )}
+          >
+            {error}
+          </p>
         )}
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-full bg-blue-600 py-2.5 text-sm font-medium text-white transition hover:bg-blue-500 disabled:opacity-60"
+          className="w-full rounded-xl bg-indigo-600 py-2.5 text-sm font-medium text-white shadow-sm shadow-indigo-600/25 transition hover:bg-indigo-500 disabled:opacity-60"
         >
           {loading
             ? "Please wait…"
             : mode === "signUp"
               ? "Create account"
-              : "Sign in with email"}
+              : "Sign in"}
         </button>
       </form>
     </div>
