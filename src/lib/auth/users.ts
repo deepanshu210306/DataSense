@@ -35,3 +35,23 @@ export async function verifyPassword(
 ): Promise<boolean> {
   return bcrypt.compare(plainPassword, hashedPassword);
 }
+
+/** Updates password (and optional name) for an unverified account on re-signup. */
+export async function updateUnverifiedUser(
+  email: string,
+  plainPassword: string,
+  name?: string,
+): Promise<void> {
+  await dbConnect();
+  const normalized = normalizeEmail(email);
+  const password = await bcrypt.hash(plainPassword, BCRYPT_ROUNDS);
+  await User.updateOne(
+    { email: normalized },
+    {
+      $set: {
+        password,
+        ...(name?.trim() ? { name: name.trim() } : {}),
+      },
+    },
+  ).exec();
+}

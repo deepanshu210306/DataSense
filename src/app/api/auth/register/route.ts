@@ -1,5 +1,6 @@
 import { jsonError } from "@/lib/api-response";
-import { createPasswordUser, findUserByEmail } from "@/lib/auth/users";
+import { createPasswordUser, findUserByEmail, updateUnverifiedUser } from "@/lib/auth/users";
+import { issueVerificationCode } from "@/lib/auth/verification";
 import { isAppError, toErrorMessage } from "@/lib/errors";
 import { signUpSchema } from "@/schemas/signUpSchema";
 
@@ -17,18 +18,39 @@ export async function POST(req: Request) {
 
     const { name, email, password } = parsed.data;
     const existing = await findUserByEmail(email);
+
     if (existing) {
-      return jsonError(
-        existing.password
-          ? "An account with this email already exists."
-          : "This email is registered without a password. Sign up with a different email or contact support.",
-        409,
-        "CONFLICT",
+      // A verified password account already exists — nothing to do.
+      if (existing.password && existing.emailVerified) {
+        return jsonError(
+          "An account with this email already exists.",
+          409,
+          "CONFLICT",
+        );
+      }
+      // Registered via Google (no password) — don't overwrite it.
+      if (!existing.password) {
+        return jsonError(
+          "This email is registered without a password. Sign up with a different email or contact support.",
+          409,
+          "CONFLICT",
+        );
+      }
+      // Password set but never verified — refresh credentials and resend code.
+      await updateUnverifiedUser(email, password, name);
+      await issueVerificationCode(email);
+      return Response.json(
+        { ok: true, requiresVerification: true },
+        { status: 200 },
       );
     }
 
     await createPasswordUser(email, password, name);
-    return Response.json({ ok: true }, { status: 201 });
+    await issueVerificationCode(email);
+    return Response.json(
+      { ok: true, requiresVerification: true },
+      { status: 201 },
+    );
   } catch (error) {
     if (isAppError(error)) {
       return jsonError(error.message, error.status, error.code);

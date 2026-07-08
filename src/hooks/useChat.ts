@@ -131,7 +131,7 @@ export function useChat(options: UseChatOptions) {
 
       if (!resourceId) {
         toast.error("Select a dataset first", {
-          description: "Open the profile menu and pick or add a dataset.",
+          description: "Choose a dataset in the sidebar before sending.",
         });
         return;
       }

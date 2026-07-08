@@ -1,81 +1,53 @@
 # DataSense
 
-Chat interface for Indian **Census 2011** open data on [data.gov.in](https://data.gov.in). Sign in with Google, ask in plain language, and revisit saved conversations stored in **MongoDB**.
+AI chat for **any** open dataset on [data.gov.in](https://data.gov.in). Sign up with email, verify your address, pick a dataset, ask in plain language, and revisit saved conversations.
 
-## Architecture
+## Stack
 
+Next.js · TypeScript · MongoDB (Mongoose) · Groq · Auth.js · Resend · Tailwind
+
+## Quick start
+
+```bash
+npm install
+cp .env.example .env.local   # fill in keys (see below)
+npm run db:init
+npm run dev
 ```
-/                     Landing page + Google sign-in (NextAuth)
-/chat                 New conversation (auth required)
-/chat/[id]            Saved conversation with history
 
-POST /api/chat        Stream answer + persist messages to MongoDB
-GET  /api/conversations        List user's recent chats
-GET  /api/conversations/[id]   Load messages for a thread
-```
+Open http://localhost:3000
 
-| Layer | Technology |
-|-------|------------|
-| Auth | NextAuth v5 + Google OAuth + `@auth/mongodb-adapter` |
-| Database | MongoDB Atlas (`DATABASE_URL` + `MONGODB_DB_NAME`) |
-| LLM | Groq (`GROQ_API_KEY`) |
-| Data | data.gov.in (`DATA_GOV_IN_API_KEY`) — one key, all datasets |
+## Required env vars
 
-## Setup
+| Variable | Purpose |
+|----------|---------|
+| `MONGODB_URI` | MongoDB connection string |
+| `GROQ_API_KEY` | Groq LLM |
+| `DATA_GOV_IN_API_KEY` | data.gov.in API |
+| `AUTH_SECRET` | `openssl rand -base64 32` |
+| `AUTH_URL` | `http://localhost:3000` |
+| `RESEND_API_KEY` | Verification emails |
+| `EMAIL_FROM` | Verified sender in Resend |
 
-1. **Install**
+See `.env.example` for optional tuning (Groq limits, fetch limits, etc.).
 
-   ```bash
-   npm install
-   ```
+## Auth flow
 
-2. **Configure `.env.local`** (copy from `.env.example`)
+1. **Sign up** → 6-digit code emailed via Resend  
+2. **Verify** → enter code on the landing page  
+3. **Sign in** → JWT session, `/chat` protected by middleware  
 
-   | Variable | Purpose |
-   |----------|---------|
-   | `DATA_GOV_IN_API_KEY` | data.gov.in API key |
-   | `GROQ_API_KEY` | Groq API key |
-   | `AUTH_SECRET` | `openssl rand -base64 32` |
-   | `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | Google OAuth |
-   | `AUTH_URL` | `http://localhost:3000` |
-   | `DATABASE_URL` | MongoDB connection string |
-   | `MONGODB_DB_NAME` | Database name (default: `datasense`) |
-
-   Google OAuth redirect URI: `http://localhost:3000/api/auth/callback/google`
-
-3. **Initialize MongoDB indexes**
-
-   ```bash
-   npm run db:init
-   ```
-
-4. **Run**
-
-   ```bash
-   npm run dev
-   ```
-
-   - Home: http://localhost:3000  
-   - Chat (after sign-in): http://localhost:3000/chat  
-
-## Features
-
-- **No manual dataset pick required** — auto-detects the best Census table from your question (override in profile menu).
-- **Saved chats** — sidebar “Recent chats” updates as you talk.
-- **Live profile** — name, email, and Google photo from your session.
-- **One data.gov.in key** — shared across all Census datasets.
+> `onboarding@resend.dev` only delivers to your Resend account email until you verify a domain.
 
 ## Scripts
 
 | Command | Description |
 |---------|-------------|
-| `npm run dev` | Development server |
+| `npm run dev` | Dev server |
 | `npm run build` | Production build |
-| `npm run db:init` | Create MongoDB indexes |
-| `npm run verify:datasets` | Test data.gov.in key against all datasets |
+| `npm run db:init` | Indexes + seed starter datasets |
+| `npm run verify:datasets` | Smoke-test data.gov.in key |
 
 ## Security
 
-- Never commit `.env.local`.
-- Rotate any key that was shared publicly.
-- API keys stay server-side only — never sent to the browser.
+Never commit `.env.local`. API keys and LLM calls stay server-side only.

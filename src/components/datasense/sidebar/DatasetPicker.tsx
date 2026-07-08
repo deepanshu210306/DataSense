@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   BarChart3,
@@ -107,7 +107,10 @@ export function DatasetPicker({
 
   const handleOpenChange = useCallback(
     (next: boolean) => {
-      if (!next) {
+      if (next) {
+        // Jump straight to the add form when the catalog is empty.
+        setShowAdd(!datasetsLoading && datasets.length === 0);
+      } else {
         setSearchQuery("");
         setShowAdd(false);
         setAddInput("");
@@ -115,7 +118,7 @@ export function DatasetPicker({
       }
       onOpenChange(next);
     },
-    [onOpenChange],
+    [datasets.length, datasetsLoading, onOpenChange],
   );
 
   const selectDataset = useCallback(
@@ -126,13 +129,6 @@ export function DatasetPicker({
     },
     [handleOpenChange, mobile, onCloseMobile, onResourceIdChange],
   );
-
-  // Open the add form automatically when the catalog is empty.
-  useEffect(() => {
-    if (open && !datasetsLoading && datasets.length === 0) {
-      setShowAdd(true);
-    }
-  }, [open, datasets.length, datasetsLoading]);
 
   const resolveDataset = useCallback(async () => {
     const trimmed = addInput.trim();

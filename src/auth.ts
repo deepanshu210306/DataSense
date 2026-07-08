@@ -1,7 +1,12 @@
-import NextAuth from "next-auth";
+import NextAuth, { CredentialsSignin } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { findUserByEmail, verifyPassword } from "@/lib/auth/users";
 import { authConfig } from "./auth.config";
+
+/** Thrown when credentials are valid but the email hasn't been verified yet. */
+class EmailNotVerifiedError extends CredentialsSignin {
+  code = "email_not_verified";
+}
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   ...authConfig,
@@ -31,6 +36,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         const valid = await verifyPassword(password, user.password);
         if (!valid) return null;
+
+        if (!user.emailVerified) {
+          throw new EmailNotVerifiedError();
+        }
 
         return {
           id: String(user._id),

@@ -62,6 +62,23 @@ const serverEnvSchema = z.object({
     .min(1000)
     .max(100000)
     .default(5000),
+
+  /** Resend — transactional email (verification codes) */
+  RESEND_API_KEY: z.string().min(1, "RESEND_API_KEY is required"),
+  /**
+   * From address for outgoing mail. Must be a verified domain in Resend.
+   * `onboarding@resend.dev` works out of the box but only delivers to the
+   * Resend account owner's own email — verify a domain before going live.
+   */
+  EMAIL_FROM: z.preprocess(
+    emptyToUndefined,
+    z.string().min(1).default("DataSense <onboarding@resend.dev>"),
+  ),
+  /** Public base URL, used to build links inside emails. */
+  APP_URL: z.preprocess(
+    emptyToUndefined,
+    z.string().url().default("http://localhost:3000"),
+  ),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;

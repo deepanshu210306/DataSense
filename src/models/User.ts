@@ -8,6 +8,12 @@ export interface IUser {
   password?: string;
   image?: string | null;
   emailVerified?: Date | null;
+  /** bcrypt hash of the current 6-digit verification code (select: false). */
+  verificationCode?: string | null;
+  /** When the current verification code stops being valid. */
+  verificationCodeExpires?: Date | null;
+  /** Wrong-code attempts on the current code; locks after a threshold. */
+  verificationAttempts?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -25,6 +31,9 @@ const UserSchema = new Schema<IUser>(
     password: { type: String },
     image: { type: String, default: null },
     emailVerified: { type: Date, default: null },
+    verificationCode: { type: String, default: null, select: false },
+    verificationCodeExpires: { type: Date, default: null, select: false },
+    verificationAttempts: { type: Number, default: 0, select: false },
   },
   { timestamps: true },
 );
