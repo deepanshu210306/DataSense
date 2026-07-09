@@ -28,14 +28,16 @@ function readStored(): Theme | null {
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  // Always match server first render ("dark") to avoid hydration mismatch.
-  const [theme, setThemeState] = useState<Theme>("dark");
+  // Match server first render ("light") to avoid hydration mismatch.
+  const [theme, setThemeState] = useState<Theme>("light");
 
   useLayoutEffect(() => {
     const stored = readStored();
     if (stored) {
       queueMicrotask(() => setThemeState(stored));
       document.documentElement.dataset.theme = stored;
+    } else {
+      document.documentElement.dataset.theme = "light";
     }
   }, []);
 

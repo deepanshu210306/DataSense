@@ -19,6 +19,12 @@ export function formatAssistantError(body: ChatApiErrorBody): string {
   if (body.code === "GROQ_RATE_LIMIT") {
     return `### Service temporarily busy\n\n${body.error}`;
   }
+  if (
+    body.code === "GROQ_REQUEST_TOO_LARGE" ||
+    body.code === "PROMPT_TOO_LARGE"
+  ) {
+    return `### Dataset too large for one answer\n\n${body.error}\n\n**Tips:** ask about one state or group at a time, or start with "What columns are in this dataset?"`;
+  }
   return `**Could not get an answer.** ${body.error}`;
 }
 

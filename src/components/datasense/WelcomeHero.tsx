@@ -7,9 +7,9 @@ import { useTheme } from "@/components/providers/ThemeProvider";
 import { cn } from "@/lib/utils";
 
 const EXAMPLE_PROMPTS = [
-  "What is the total population in the sample?",
-  "Compare literacy rates across states",
-  "Break down population by age and sex",
+  "What columns does this dataset have?",
+  "Summarise the key figures in the sample",
+  "What stands out in this data?",
 ] as const;
 
 type WelcomeHeroProps = {

@@ -10,21 +10,56 @@ import { buildSystemPrompt } from "./prompts";
 
 const MAX_HISTORY_TURNS = 4;
 const MAX_HISTORY_CHARS_PER_MESSAGE = 400;
+/** Groq on_demand tier caps total request size (~8000 tokens incl. completion). */
+const GROQ_ON_DEMAND_TOTAL_TOKENS = 7900;
+const PROMPT_SAFETY_MARGIN = 200;
 
-/** Rough token estimate — Census JSON is token-dense; bias high. */
+/** Conservative estimate — JSON and markdown are token-dense. */
 function estimateTokens(text: string): number {
-  return Math.ceil(text.length / 3);
+  return Math.ceil(text.length / 2.5);
+}
+
+function slimRecord(
+  record: Record<string, unknown>,
+  maxCols: number,
+  maxValLen: number,
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(record).slice(0, maxCols)) {
+    if (typeof value === "string" && value.length > maxValLen) {
+      out[key] = `${value.slice(0, maxValLen)}…`;
+    } else {
+      out[key] = value;
+    }
+  }
+  return out;
+}
+
+function slimRecords(
+  records: Record<string, unknown>[],
+  maxCols: number,
+  maxValLen: number,
+): Record<string, unknown>[] {
+  return records.map((r) => slimRecord(r, maxCols, maxValLen));
 }
 
 function trimRecordsForContext(
   records: Record<string, unknown>[],
   maxChars: number,
+  maxCols = 24,
+  maxValLen = 120,
 ): { json: string; rowCount: number; records: Record<string, unknown>[] } {
-  let slice = records;
+  let slice = slimRecords(records, maxCols, maxValLen);
   let json = JSON.stringify(slice, null, 0);
 
   while (json.length > maxChars && slice.length > 1) {
-    slice = slice.slice(0, Math.ceil(slice.length * 0.7));
+    slice = slice.slice(0, Math.ceil(slice.length * 0.65));
+    json = JSON.stringify(slice, null, 0);
+  }
+
+  while (json.length > maxChars && maxCols > 8) {
+    maxCols = Math.max(8, Math.floor(maxCols * 0.75));
+    slice = slimRecords(records.slice(0, slice.length), maxCols, maxValLen);
     json = JSON.stringify(slice, null, 0);
   }
 
@@ -33,6 +68,14 @@ function trimRecordsForContext(
   }
 
   return { json, rowCount: slice.length, records: slice };
+}
+
+function effectivePromptTokenBudget(
+  maxPromptTokens: number,
+  maxCompletionTokens: number,
+): number {
+  const groqCap = GROQ_ON_DEMAND_TOTAL_TOKENS - maxCompletionTokens - PROMPT_SAFETY_MARGIN;
+  return Math.max(1500, Math.min(maxPromptTokens, groqCap));
 }
 
 function fitPromptToTokenBudget(
@@ -92,7 +135,7 @@ function fitPromptToTokenBudget(
   }
 
   throw new AppError(
-    "Could not fit dataset context within the AI token budget. Try a smaller dataset or adjust GROQ_MAX_PROMPT_TOKENS.",
+    "This dataset has too many columns or rows to fit in one request. Try asking about a specific state, year, or category.",
     { status: 413, code: "PROMPT_TOO_LARGE" },
   );
 }
@@ -150,7 +193,7 @@ export async function runDatasetChat(
     );
   }
 
-  const fetchLimit = Math.min(env.DATA_GOV_IN_FETCH_LIMIT, 20);
+  const fetchLimit = Math.min(env.DATA_GOV_IN_FETCH_LIMIT, 15);
   const data = await fetchDataGovResource(dataset.resourceId, {
     limit: fetchLimit,
   });
@@ -163,13 +206,17 @@ export async function runDatasetChat(
   }
 
   const history = toGroqHistory(options.history ?? []);
+  const promptBudget = effectivePromptTokenBudget(
+    env.GROQ_MAX_PROMPT_TOKENS,
+    env.GROQ_MAX_COMPLETION_TOKENS,
+  );
   const { systemPrompt } = fitPromptToTokenBudget(
     data.records as Record<string, unknown>[],
     dataset,
     data,
     history,
     userMessage,
-    env.GROQ_MAX_PROMPT_TOKENS,
+    promptBudget,
     env.CHAT_MAX_CONTEXT_CHARS,
   );
 
