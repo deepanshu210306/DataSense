@@ -1,5 +1,8 @@
 import { AppError } from "@/lib/errors";
-import { fetchDataGovResource } from "@/lib/data-gov-in/client";
+import {
+  fetchDataGovResource,
+  fetchFromDataGov,
+} from "@/lib/data-gov-in/client";
 import type { DataGovFetchResult } from "@/lib/data-gov-in/types";
 import { upsertDataset } from "@/lib/datasets/service";
 import type { CachedDataset } from "@/lib/datasets/types";
@@ -103,10 +106,9 @@ export async function resolveByUrl(
     });
   }
 
-  const response = await fetch(parsed.toString(), {
-    signal: AbortSignal.timeout(30000),
-    headers: { Accept: "text/html" },
-    cache: "no-store",
+  const response = await fetchFromDataGov(parsed.toString(), {
+    timeoutMs: 30000,
+    accept: "text/html",
   });
 
   if (!response.ok) {

@@ -86,6 +86,7 @@ export async function issueVerificationCode(email: string): Promise<void> {
   });
 
   if (error) {
+    console.error(`[resend] send failed: ${error.name}: ${error.message}`);
     throw new AppError(
       "Could not send the verification email. Please try again.",
       { status: 502, code: "EMAIL_SEND_FAILED" },

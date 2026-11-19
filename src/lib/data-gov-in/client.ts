@@ -8,6 +8,68 @@ type FetchOptions = {
   filters?: Record<string, string>;
 };
 
+const UNREACHABLE_MESSAGE =
+  "data.gov.in isn't responding right now, so this dataset can't be loaded. This is an issue on the government portal's side, not with your question — please try again later.";
+
+/** Low-level reason a request never got an HTTP response (e.g. "ECONNRESET"), or null. */
+function networkFailureReason(error: unknown): string | null {
+  if (!(error instanceof Error)) return null;
+  if (error.name === "AbortError" || error.name === "TimeoutError") {
+    return "TIMEOUT";
+  }
+  // Node's fetch reports every network-level failure as TypeError("fetch failed").
+  if (!(error instanceof TypeError) || error.message !== "fetch failed") {
+    return null;
+  }
+  const cause = error.cause;
+  if (
+    cause &&
+    typeof cause === "object" &&
+    "code" in cause &&
+    typeof cause.code === "string"
+  ) {
+    return cause.code;
+  }
+  return "NETWORK_ERROR";
+}
+
+function isUnreachable(error: unknown): boolean {
+  return error instanceof AppError && error.code === "DATA_GOV_UNREACHABLE";
+}
+
+/**
+ * GETs a data.gov.in URL with a timeout and an identifying User-Agent (the
+ * portal's firewall rejects default script user agents). A request that never
+ * gets an HTTP response throws DATA_GOV_UNREACHABLE.
+ */
+export async function fetchFromDataGov(
+  url: string,
+  options: { timeoutMs: number; accept: string },
+): Promise<Response> {
+  const { APP_URL } = getServerEnv();
+  try {
+    return await fetch(url, {
+      method: "GET",
+      headers: {
+        Accept: options.accept,
+        "User-Agent": `DataSense/1.0 (+${APP_URL})`,
+      },
+      signal: AbortSignal.timeout(options.timeoutMs),
+      cache: "no-store",
+    });
+  } catch (error) {
+    const reason = networkFailureReason(error);
+    if (!reason) throw error;
+    // Log host + path only — the query string carries the API key.
+    const { host, pathname } = new URL(url);
+    console.error(`[data.gov.in] no response from ${host}${pathname}: ${reason}`);
+    throw new AppError(UNREACHABLE_MESSAGE, {
+      status: 503,
+      code: "DATA_GOV_UNREACHABLE",
+    });
+  }
+}
+
 function buildSearchParams(
   apiKey: string,
   options: FetchOptions,
@@ -82,25 +144,6 @@ function normalizePayload(
   };
 }
 
-async function fetchWithTimeout(
-  url: string,
-  timeoutMs: number,
-): Promise<Response> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    return await fetch(url, {
-      method: "GET",
-      headers: { Accept: "application/json" },
-      signal: controller.signal,
-      cache: "no-store",
-    });
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
 async function fetchPrimary(
   resourceId: string,
   apiKey: string,
@@ -110,7 +153,10 @@ async function fetchPrimary(
 ): Promise<DataGovFetchResult> {
   const params = buildSearchParams(apiKey, options);
   const url = `${baseUrl.replace(/\/$/, "")}/${resourceId}?${params.toString()}`;
-  const response = await fetchWithTimeout(url, timeoutMs);
+  const response = await fetchFromDataGov(url, {
+    timeoutMs,
+    accept: "application/json",
+  });
 
   if (!response.ok) {
     throw new AppError(
@@ -133,7 +179,10 @@ async function fetchFallback(
   const params = buildSearchParams(apiKey, options);
   params.set("resource_id", resourceId);
   const url = `${fallbackUrl}?${params.toString()}`;
-  const response = await fetchWithTimeout(url, timeoutMs);
+  const response = await fetchFromDataGov(url, {
+    timeoutMs,
+    accept: "application/json",
+  });
 
   if (!response.ok) {
     throw new AppError(
@@ -175,6 +224,10 @@ export async function fetchDataGovResource(
         env.DATA_GOV_IN_TIMEOUT_MS,
       );
     } catch (fallbackError) {
+      // If the main API never answered, the portal itself is unreachable —
+      // the legacy endpoint's error would only add noise.
+      if (isUnreachable(primaryError)) throw primaryError;
+
       const primaryMsg =
         primaryError instanceof Error
           ? primaryError.message

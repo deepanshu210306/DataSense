@@ -19,6 +19,9 @@ export function formatAssistantError(body: ChatApiErrorBody): string {
   if (body.code === "GROQ_RATE_LIMIT") {
     return `### Service temporarily busy\n\n${body.error}`;
   }
+  if (body.code === "DATA_GOV_UNREACHABLE") {
+    return `### data.gov.in is not responding\n\n${body.error}`;
+  }
   if (
     body.code === "GROQ_REQUEST_TOO_LARGE" ||
     body.code === "PROMPT_TOO_LARGE"

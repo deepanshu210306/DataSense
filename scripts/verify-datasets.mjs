@@ -9,6 +9,10 @@ if (!key) {
   process.exit(1);
 }
 
+const baseUrl = (
+  process.env.DATA_GOV_IN_BASE_URL?.trim() || "https://api.data.gov.in/resource"
+).replace(/\/$/, "");
+
 const DATASETS = {
   primaryAbstract: {
     label: "Census 2011 — Primary Abstract (India)",
@@ -21,8 +25,11 @@ const DATASETS = {
 };
 
 async function verifyDataset(id, config) {
-  const url = `https://api.data.gov.in/resource/${config.resourceId}?api-key=${key}&format=json&limit=3`;
-  const res = await fetch(url, { signal: AbortSignal.timeout(30000) });
+  const url = `${baseUrl}/${config.resourceId}?api-key=${key}&format=json&limit=3`;
+  const res = await fetch(url, {
+    signal: AbortSignal.timeout(30000),
+    headers: { "User-Agent": "DataSense/1.0 (verify-datasets)" },
+  });
   const body = await res.json();
   const records = body.records ?? [];
   const ok = res.ok && Array.isArray(records) && records.length > 0;
@@ -41,7 +48,7 @@ async function verifyDataset(id, config) {
   };
 }
 
-console.log("Verifying datasets with single DATA_GOV_IN_API_KEY…\n");
+console.log(`Verifying datasets against ${baseUrl} …\n`);
 
 let allOk = true;
 for (const [id, config] of Object.entries(DATASETS)) {
@@ -58,7 +65,10 @@ for (const [id, config] of Object.entries(DATASETS)) {
   } catch (err) {
     allOk = false;
     console.log(`[FAIL] ${id} — ${config.label}`);
-    console.log(`       ${err instanceof Error ? err.message : String(err)}`);
+    const reason = err?.cause?.code ?? err?.cause?.message;
+    console.log(
+      `       ${err instanceof Error ? err.message : String(err)}${reason ? ` (${reason})` : ""}`,
+    );
   }
   console.log("");
 }
