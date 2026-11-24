@@ -29,6 +29,7 @@ type SidebarProps = {
   conversations: ConversationSummary[];
   activeConversationId: string | null;
   onSelectConversation: (id: string) => void;
+  onDeleteConversation: (conversation: ConversationSummary) => void;
   user?: {
     name?: string | null;
     email?: string | null;
@@ -52,6 +53,7 @@ export function Sidebar({
   conversations,
   activeConversationId,
   onSelectConversation,
+  onDeleteConversation,
   user,
   onSignOut,
   mobile,
@@ -187,6 +189,7 @@ export function Sidebar({
             conversations={conversations}
             activeConversationId={activeConversationId}
             onSelectConversation={onSelectConversation}
+            onDeleteConversation={onDeleteConversation}
             bar={bar}
             mobile={mobile}
             onCloseMobile={onCloseMobile}

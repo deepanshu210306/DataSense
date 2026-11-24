@@ -1,6 +1,9 @@
 import { auth } from "@/auth";
 import { jsonError } from "@/lib/api-response";
-import { getConversationMessages } from "@/lib/conversations/service";
+import {
+  deleteConversation,
+  getConversationMessages,
+} from "@/lib/conversations/service";
 import { isAppError, toErrorMessage } from "@/lib/errors";
 
 export const runtime = "nodejs";
@@ -23,6 +26,24 @@ export async function GET(_req: Request, context: RouteContext) {
         createdAt: m.createdAt.toISOString(),
       })),
     });
+  } catch (error) {
+    if (isAppError(error)) {
+      return jsonError(error.message, error.status, error.code);
+    }
+    return jsonError(toErrorMessage(error), 500, "INTERNAL_ERROR");
+  }
+}
+
+export async function DELETE(_req: Request, context: RouteContext) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return jsonError("Sign in required.", 401, "UNAUTHORIZED");
+    }
+
+    const { id } = await context.params;
+    await deleteConversation(id, session.user.id);
+    return Response.json({ ok: true }, { status: 200 });
   } catch (error) {
     if (isAppError(error)) {
       return jsonError(error.message, error.status, error.code);

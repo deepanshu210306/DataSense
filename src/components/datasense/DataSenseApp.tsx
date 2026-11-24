@@ -5,11 +5,13 @@ import { useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { toast } from "sonner";
 import { CHAT } from "@/lib/copy";
+import type { ConversationSummary } from "@/lib/conversations/types";
 import { useChat } from "@/hooks/useChat";
 import { useConversations } from "@/hooks/useConversations";
 import { useDatasets } from "@/hooks/useDatasets";
 import { BackgroundBlobs } from "./BackgroundBlobs";
 import { ChatInput } from "./ChatInput";
+import { DeleteChatDialog } from "./DeleteChatDialog";
 import { MobileChatHeader } from "./MobileChatHeader";
 import {
   MobileSidebarDrawer,
@@ -29,7 +31,15 @@ export function DataSenseApp({ conversationId }: DataSenseAppProps) {
   const { data: session } = useSession();
   const { theme } = useTheme();
   const [pickedResourceId, setPickedResourceId] = useState<string | null>(null);
-  const { conversations, refresh: refreshConversations } = useConversations();
+  const [createdConversationId, setCreatedConversationId] = useState<
+    string | null
+  >(null);
+  const activeConversationId = conversationId ?? createdConversationId;
+  const {
+    conversations,
+    refresh: refreshConversations,
+    deleteConversation,
+  } = useConversations();
   const {
     datasets,
     loading: datasetsLoading,
@@ -66,6 +76,7 @@ export function DataSenseApp({ conversationId }: DataSenseAppProps) {
       // the conversation mid-stream, which races the live stream and can show
       // the reply twice. history.replaceState keeps the streaming instance.
       window.history.replaceState(null, "", `/chat/${id}`);
+      setCreatedConversationId(id);
       void refreshConversations();
     },
     onMessageComplete: () => {
@@ -76,6 +87,9 @@ export function DataSenseApp({ conversationId }: DataSenseAppProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [pendingDelete, setPendingDelete] =
+    useState<ConversationSummary | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const hasConversation = messages.length > 0;
 
@@ -84,8 +98,30 @@ export function DataSenseApp({ conversationId }: DataSenseAppProps) {
 
   const startNewChat = useCallback(() => {
     reset();
+    setCreatedConversationId(null);
     router.push("/chat");
   }, [reset, router]);
+
+  const cancelDelete = useCallback(() => setPendingDelete(null), []);
+
+  const confirmDelete = useCallback(async () => {
+    if (!pendingDelete) return;
+    const { id } = pendingDelete;
+    setDeleting(true);
+    try {
+      await deleteConversation(id);
+      setPendingDelete(null);
+      toast.success(CHAT.chatDeleted);
+      if (id === activeConversationId) startNewChat();
+    } catch (error) {
+      toast.error(CHAT.deleteChatFailed, {
+        description:
+          error instanceof Error ? error.message : "Please try again.",
+      });
+    } finally {
+      setDeleting(false);
+    }
+  }, [pendingDelete, deleteConversation, activeConversationId, startNewChat]);
 
   const selectConversation = useCallback(
     (id: string) => {
@@ -138,8 +174,9 @@ export function DataSenseApp({ conversationId }: DataSenseAppProps) {
     },
     onSearch: openSearch,
     conversations,
-    activeConversationId: conversationId ?? null,
+    activeConversationId,
     onSelectConversation: selectConversation,
+    onDeleteConversation: setPendingDelete,
     user: session?.user,
     onSignOut: handleSignOut,
   };
@@ -210,6 +247,13 @@ export function DataSenseApp({ conversationId }: DataSenseAppProps) {
         onClose={closeSearch}
         conversations={conversations}
         onSelectConversation={selectConversation}
+      />
+
+      <DeleteChatDialog
+        chatTitle={pendingDelete?.title ?? null}
+        deleting={deleting}
+        onCancel={cancelDelete}
+        onConfirm={() => void confirmDelete()}
       />
     </div>
   );

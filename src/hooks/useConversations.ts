@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { readErrorResponse } from "@/lib/chat/stream-client";
 import {
   formatRelativeTime,
   type ConversationSummary,
@@ -39,11 +40,24 @@ export function useConversations() {
     }
   }, []);
 
+  const deleteConversation = useCallback(async (id: string) => {
+    const response = await fetch(
+      `/api/conversations/${encodeURIComponent(id)}`,
+      { method: "DELETE" },
+    );
+    // 404 means it's already gone (e.g. deleted in another tab).
+    if (!response.ok && response.status !== 404) {
+      const err = await readErrorResponse(response);
+      throw new Error(err.error);
+    }
+    setConversations((prev) => prev.filter((c) => c.id !== id));
+  }, []);
+
   useEffect(() => {
     queueMicrotask(() => {
       void refresh();
     });
   }, [refresh]);
 
-  return { conversations, loading, refresh };
+  return { conversations, loading, refresh, deleteConversation };
 }

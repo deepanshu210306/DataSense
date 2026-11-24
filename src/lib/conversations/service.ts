@@ -146,6 +146,15 @@ export async function ensureConversation(
   return createConversation(userId, resourceId, title);
 }
 
+export async function deleteConversation(
+  conversationId: string,
+  userId: string,
+): Promise<void> {
+  await getConversationForUser(conversationId, userId);
+  await Message.deleteMany({ conversationId }).exec();
+  await Conversation.deleteOne({ _id: conversationId, userId }).exec();
+}
+
 export async function touchConversation(conversationId: string): Promise<void> {
   await dbConnect();
   await Conversation.updateOne(

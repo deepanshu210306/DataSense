@@ -9,6 +9,12 @@ export function getSidebarBar(isLight: boolean) {
       ? "bg-indigo-600 text-white shadow-sm shadow-indigo-600/25 hover:bg-indigo-500"
       : "bg-indigo-500 text-white shadow-sm shadow-indigo-500/25 hover:bg-indigo-400",
     ghost: isLight ? "hover:bg-black/[0.04]" : "hover:bg-white/[0.05]",
+    rowHover: isLight
+      ? "group-hover:bg-black/[0.04]"
+      : "group-hover:bg-white/[0.05]",
+    danger: isLight
+      ? "hover:bg-red-500/10 hover:text-red-600"
+      : "hover:bg-red-500/15 hover:text-red-400",
     active: isLight
       ? "bg-indigo-500/10 text-indigo-700"
       : "bg-indigo-500/15 text-indigo-200",
