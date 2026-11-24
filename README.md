@@ -48,6 +48,10 @@ See `.env.example` for optional tuning (Groq limits, fetch limits, etc.).
 | `npm run db:init` | Indexes + seed starter datasets |
 | `npm run verify:datasets` | Smoke-test data.gov.in key |
 
+## Deploying
+
+`vercel.json` pins Vercel Functions to Mumbai (`bom1`) because data.gov.in only accepts connections from India. Vercel's default region (`iad1`, USA) can't reach it.
+
 ## Security
 
 Never commit `.env.local`. API keys and LLM calls stay server-side only.
